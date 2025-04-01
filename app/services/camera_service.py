@@ -1,44 +1,66 @@
-import cv2
-import requests
 import os
-import time
+import requests
+import shutil
+from sqlalchemy.orm import Session
+from app.models.camera_model import Camera
+from fastapi import HTTPException
 from app.utils.config import config
 
-camera_active = {}  # מעקב אחרי מצב המצלמות
-camera_urls = {}  # שמירת כתובות ה-ESP32 לכל משתמש
+# ✅ **1. הפעלת מצלמה ושמירת ה-URL ב-DB**
+def start_camera_service(db: Session, profile_id: int, camera_url: str):
+    camera = db.query(Camera).filter(Camera.profile_id == profile_id).first()
+    
+    if camera:
+        camera.active = True
+        camera.url = camera_url
+    else:
+        camera = Camera(profile_id=profile_id, url=camera_url, active=True)
+        db.add(camera)
+    
+    db.commit()
+    db.refresh(camera)
+    return {"message": "Camera activated successfully"}
 
-def start_camera_service(user_id, camera_url):
-    """שומר את כתובת ה-ESP32 ומפעיל את המצלמה"""
-    camera_active[user_id] = True
-    camera_urls[user_id] = camera_url
-    return True  # אין צורך בהרצה לולאתית, כי השידור מגיע משרת ה-ESP32
 
-def stop_camera_service(user_id):
-    """עוצר את המצלמה בכך שמפסיק לשמור תמונות"""
-    if user_id in camera_active:
-        camera_active[user_id] = False
-        del camera_urls[user_id]
+# ✅ **2. עצירת המצלמה ועדכון הסטטוס ב-DB**
+def stop_camera_service(db: Session, profile_id: int):
+    camera = db.query(Camera).filter(Camera.profile_id == profile_id).first()
+    
+    if camera:
+        camera.active = False
+        camera.url = None
+        db.commit()
+        return {"message": "Camera stopped successfully"}
+    else:
+        raise HTTPException(status_code=404, detail="Camera not found")
 
-def get_camera_status_service(user_id):
-    """בודק אם המצלמה פעילה"""
-    return camera_active.get(user_id, False)
+# ✅ **3. שליפת סטטוס המצלמה מה-DB**
+def get_camera_status_service(db: Session, profile_id: int):
+    camera = db.query(Camera).filter(Camera.profile_id == profile_id).first()
+    if not camera:
+        return False
+    return camera.active
 
-def capture_frame_service(user_id):
-    """לוקח תמונה אחת מזרם ה-ESP32-CAM ושומר אותה"""
-    if user_id not in camera_urls:
-        return None
+# ✅ **4. צילום תמונה ושמירתה בנתיב**
+def capture_frame_service(db: Session, profile_id: int):
+    camera = db.query(Camera).filter(Camera.profile_id == profile_id, Camera.active == True).first()
+    
+    if not camera or not camera.url:
+        raise HTTPException(status_code=404, detail="Camera not found or inactive")
 
-    camera_url = camera_urls[user_id]
-    frame_url = f"{camera_url}/capture"  # ברוב הקושחות יש `http://ESP_IP/capture`
+    frame_url = f"{camera.url}/capture"  # כתובת ה-Capture מה-ESP32
     
     try:
         response = requests.get(frame_url, timeout=5)
         if response.status_code == 200:
-            frame_path = os.path.join(config.UPLOAD_DIR, f"{user_id}_frame.jpg")
+            profile_dir = os.path.join(config.UPLOAD_DIR, str(profile_id))
+            os.makedirs(profile_dir, exist_ok=True)
+
+            frame_path = os.path.join(profile_dir, f"{profile_id}_frame.jpg")
             with open(frame_path, "wb") as f:
                 f.write(response.content)
             return frame_path
         else:
-            return None
+            raise HTTPException(status_code=500, detail="Failed to capture frame from camera")
     except requests.RequestException:
-        return None
+        raise HTTPException(status_code=500, detail="Unable to connect to camera")

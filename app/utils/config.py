@@ -14,14 +14,9 @@ class Config:
     UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
     ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 
-    # הגדרת DB (כרגע SQLite באופן זמני, נחליף אותו בענן בהמשך)
-    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app.db")
-
 config = Config()
 
 # בדיקה שהמשתנים נטענו בהצלחה
 if config.SECRET_KEY == "supersecretkey":
     print("⚠️  Warning: SECRET_KEY is using the default value! Make sure .env is configured correctly.")
 
-if config.DATABASE_URL.startswith("sqlite") and "app.db" in config.DATABASE_URL:
-    print("ℹ️  Info: Using SQLite. This should be replaced with a cloud DB in production.")
