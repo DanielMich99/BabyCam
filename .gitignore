@@ -12,3 +12,4 @@ uploads/*
 *.pyo
 *.pyd
 *.sqlite3
+*.c
