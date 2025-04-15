@@ -3,7 +3,11 @@ from app.routes.auth_routes import router as auth_router
 from app.routes.file_routes import router as file_router
 from app.routes.user_routes import router as user_router
 from app.routes.camera_routes import router as camera_router
-from app.models.base import init_db
+from app.routes.alert_routes import router as alert_router
+from app.routes.detection_routes import router as detection_router
+from app.routes.baby_profile_routes import router as baby_profile_router
+from app.routes.dangerous_objects_routes import router as dangerous_objects_router
+from database.init_db import init_db
 import sys
 import os
 
@@ -19,6 +23,10 @@ app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(file_router, prefix="/files", tags=["File Management"])
 app.include_router(user_router, prefix="/users", tags=["User Management"])
 app.include_router(camera_router, prefix="/camera", tags=["Camera"])
+app.include_router(alert_router, prefix="/alerts", tags=["Alerts"])
+app.include_router(detection_router, prefix="/detection", tags=["Detection"])
+app.include_router(baby_profile_router, prefix="/baby_profile", tags=["Baby Profile"])
+app.include_router(dangerous_objects_router, prefix="/dangerous_objects", tags=["Dangerous Objects"])
 
 if __name__ == "__main__":
     import uvicorn

@@ -4,3 +4,12 @@ venv/
 .pytest_cache/
 uploads/*
 !uploads/.gitkeep
+*.weights
+*.cfg
+*.names
+.env
+*.db
+*.pyo
+*.pyd
+*.sqlite3
+*.c
