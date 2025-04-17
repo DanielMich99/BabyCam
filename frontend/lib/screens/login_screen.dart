@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import '../services/auth_service.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
 
@@ -16,6 +17,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authService = AuthService();
+  bool _isLoading = false;
 
   Future<void> _handleGoogleSignIn() async {
     try {
@@ -40,6 +43,53 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (error) {
       print('Facebook Sign In Error: $error');
+    }
+  }
+
+  Future<void> _handleLogin() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        final response = await _authService.login(
+          username: _usernameController.text,
+          password: _passwordController.text,
+        );
+
+        if (mounted) {
+          // Login successful
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Login successful!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Navigate to home screen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (context) => HomeScreen(username: _usernameController.text),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
     }
   }
 
@@ -118,35 +168,39 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
+                        height: 56,
                         child: ElevatedButton(
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) => HomeScreen(
-                                        username: _usernameController.text,
-                                      ),
-                                ),
-                              );
-                            }
-                          },
+                          onPressed: _isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black87,
+                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.blue,
+                            disabledBackgroundColor: Colors.blue.withOpacity(
+                              0.6,
+                            ),
+                            elevation: 2,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text(
-                            'Sign In',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          child:
+                              _isLoading
+                                  ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                  : const Text(
+                                    'Sign In',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                         ),
                       ),
                     ],
