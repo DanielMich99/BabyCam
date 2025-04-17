@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../services/auth_service.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -16,6 +17,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
+  final _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
@@ -184,32 +187,92 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       const SizedBox(height: 24),
 
                       // Sign Up Button
-                      SizedBox(
+                      Container(
                         width: double.infinity,
+                        height: 56,
+                        margin: const EdgeInsets.symmetric(vertical: 16),
                         child: ElevatedButton(
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              // Handle sign up
-                              print('Email: ${_emailController.text}');
-                              print('Username: ${_usernameController.text}');
-                              print('Password: ${_passwordController.text}');
-                            }
-                          },
+                          onPressed:
+                              _isLoading
+                                  ? null
+                                  : () async {
+                                    if (_formKey.currentState!.validate()) {
+                                      setState(() {
+                                        _isLoading = true;
+                                      });
+
+                                      try {
+                                        await _authService.register(
+                                          email: _emailController.text,
+                                          username: _usernameController.text,
+                                          password: _passwordController.text,
+                                        );
+
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Registration successful!',
+                                              ),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                          Navigator.pop(
+                                            context,
+                                          ); // Go back to login screen
+                                        }
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(e.toString()),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      } finally {
+                                        if (mounted) {
+                                          setState(() {
+                                            _isLoading = false;
+                                          });
+                                        }
+                                      }
+                                    }
+                                  },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black87,
+                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.blue,
+                            disabledBackgroundColor: Colors.blue.withOpacity(
+                              0.6,
+                            ),
+                            elevation: 2,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text(
-                            'Sign Up',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          child:
+                              _isLoading
+                                  ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                  : const Text(
+                                    'Sign Up',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                         ),
                       ),
                     ],

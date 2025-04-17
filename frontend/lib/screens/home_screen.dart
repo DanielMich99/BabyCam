@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/auth_state.dart';
+import 'login_screen.dart';
 
 class NotificationItem {
   final String message;
@@ -26,7 +28,8 @@ class BabyProfile {
 
 class HomeScreen extends StatefulWidget {
   final String username;
-  const HomeScreen({super.key, required this.username});
+
+  const HomeScreen({Key? key, required this.username}) : super(key: key);
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -66,8 +69,43 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _checkAuthentication();
+  }
+
+  Future<void> _checkAuthentication() async {
+    final isAuthenticated = await AuthState.isAuthenticated();
+    if (!isAuthenticated && mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    await AuthState.clearAuth();
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('BabyCam'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _handleLogout,
+          ),
+        ],
+      ),
       backgroundColor: Colors.grey[200],
       body: SafeArea(
         child: Column(
@@ -89,9 +127,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: Theme.of(
                           context,
                         ).textTheme.headlineSmall?.copyWith(
-                          color: Colors.blue,
-                          fontWeight: FontWeight.bold,
-                        ),
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                     ],
                   ),
@@ -155,10 +193,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(width: 8),
                           Icon(
                             Icons.check_circle,
-                            color:
-                                notification.isRead
-                                    ? Colors.green
-                                    : Colors.grey,
+                            color: notification.isRead
+                                ? Colors.green
+                                : Colors.grey,
                           ),
                         ],
                       ),
@@ -171,26 +208,25 @@ class _HomeScreenState extends State<HomeScreen> {
             // Camera Preview Placeholder
             Expanded(
               child: Center(
-                child:
-                    _isCameraOn
-                        ? Container(
-                          margin: const EdgeInsets.all(16.0),
-                          decoration: BoxDecoration(
-                            color: Colors.black87,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'Camera Feed',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        )
-                        : const Icon(
-                          Icons.camera_alt,
-                          size: 48,
-                          color: Colors.grey,
+                child: _isCameraOn
+                    ? Container(
+                        margin: const EdgeInsets.all(16.0),
+                        decoration: BoxDecoration(
+                          color: Colors.black87,
+                          borderRadius: BorderRadius.circular(12),
                         ),
+                        child: const Center(
+                          child: Text(
+                            'Camera Feed',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.camera_alt,
+                        size: 48,
+                        color: Colors.grey,
+                      ),
               ),
             ),
 
@@ -236,10 +272,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color:
-                                          baby.isSelected
-                                              ? Colors.blue
-                                              : Colors.transparent,
+                                      color: baby.isSelected
+                                          ? Colors.blue
+                                          : Colors.transparent,
                                       width: 3,
                                     ),
                                   ),

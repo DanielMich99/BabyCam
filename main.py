@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.routes.auth_routes import router as auth_router
 from app.routes.file_routes import router as file_router
 from app.routes.user_routes import router as user_router
@@ -14,6 +15,15 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 # אתחול מסד הנתונים
 init_db()
