@@ -1,6 +1,6 @@
 from fastapi import HTTPException, File, UploadFile, Depends
 from sqlalchemy.orm import Session
-from app.services.baby_profile_service import save_profile, fetch_profiles, modify_profile, remove_profile, save_profile_picture, update_profile_dangerous_objects, get_profile_dangerous_objects
+from app.services.baby_profile_service import save_profile, fetch_profiles, modify_profile, remove_profile, save_profile_picture, update_profile_dangerous_objects_ai, get_profile_dangerous_objects_ai, update_profile_dangerous_objects_static, get_profile_dangerous_objects_static
 from database.database import get_db
 from fastapi import Body
 
@@ -37,16 +37,30 @@ def upload_profile_picture(user_id: str, profile_id: int, file: UploadFile = Fil
         raise HTTPException(status_code=500, detail="Failed to save profile picture")
     return {"message": "Profile picture uploaded successfully", "image_url": image_url}
 
-def update_dangerous_objects(profile_id: int, dangerous_objects: list = Body(...), db: Session = Depends(get_db)):
+def update_dangerous_objects_ai(profile_id: int, dangerous_objects_AI: list = Body(...), db: Session = Depends(get_db)):
     """מעדכן את רשימת החפצים המסוכנים בפרופיל של התינוק"""
-    success = update_profile_dangerous_objects(db, profile_id, dangerous_objects)
+    success = update_profile_dangerous_objects_ai(db, profile_id, dangerous_objects_AI)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update dangerous objects")
     return {"message": "Dangerous objects updated successfully"}
 
-def get_dangerous_objects(profile_id: int, db: Session = Depends(get_db)):
+def get_dangerous_objects_ai(profile_id: int, db: Session = Depends(get_db)):
     """מחזיר את רשימת החפצים המסוכנים ששמורים כרגע בפרופיל התינוק"""
-    dangerous_objects = get_profile_dangerous_objects(db, profile_id)
-    if dangerous_objects is None:
+    dangerous_objects_ai = get_profile_dangerous_objects_ai(db, profile_id)
+    if dangerous_objects_ai is None:
         raise HTTPException(status_code=404, detail="Profile not found or no dangerous objects saved")
-    return {"dangerous_objects": dangerous_objects}
+    return {"dangerous_objects": dangerous_objects_ai}
+
+def update_dangerous_objects_static(profile_id: int, dangerous_objects_static: list = Body(...), db: Session = Depends(get_db)):
+    """מעדכן את רשימת החפצים המסוכנים בפרופיל של התינוק"""
+    success = update_profile_dangerous_objects_static(db, profile_id, dangerous_objects_static)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update dangerous objects")
+    return {"message": "Dangerous objects updated successfully"}
+
+def get_dangerous_objects_static(profile_id: int, db: Session = Depends(get_db)):
+    """מחזיר את רשימת החפצים המסוכנים ששמורים כרגע בפרופיל התינוק"""
+    dangerous_objects_static = get_profile_dangerous_objects_static(db, profile_id)
+    if dangerous_objects_static is None:
+        raise HTTPException(status_code=404, detail="Profile not found or no dangerous objects saved")
+    return {"dangerous_objects": dangerous_objects_static}

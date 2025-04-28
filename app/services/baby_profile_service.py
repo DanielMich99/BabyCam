@@ -73,20 +73,37 @@ def save_profile_picture(db: Session, user_id: int, profile_id: int, file):
     return file_path
 
 # ✅ **6. עדכון רשימת חפצים מסוכנים**
-def update_profile_dangerous_objects(db: Session, profile_id: int, dangerous_objects: list):
+def update_profile_dangerous_objects_ai(db: Session, profile_id: int, dangerous_objects_AI: list):
     profile = db.query(BabyProfile).filter(BabyProfile.id == profile_id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    profile.dangerous_objects = dangerous_objects
+    profile.dangerous_objects_AI = dangerous_objects_AI
     db.commit()
     db.refresh(profile)
     return {"message": "Dangerous objects updated successfully"}
 
 # ✅ **7. שליפת רשימת חפצים מסוכנים**
-def get_profile_dangerous_objects(db: Session, profile_id: int):
+def get_profile_dangerous_objects_ai(db: Session, profile_id: int):
     profile = db.query(BabyProfile).filter(BabyProfile.id == profile_id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    return profile.dangerous_objects or []
+    return profile.dangerous_objects_AI or []
+
+def update_profile_dangerous_objects_static(db: Session, profile_id: int, dangerous_objects_static: list):
+    profile = db.query(BabyProfile).filter(BabyProfile.id == profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    profile.dangerous_objects_static = dangerous_objects_static
+    db.commit()
+    db.refresh(profile)
+    return {"message": "Dangerous objects updated successfully"}
+
+def get_profile_dangerous_objects_static(db: Session, profile_id: int):
+    profile = db.query(BabyProfile).filter(BabyProfile.id == profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    return profile.dangerous_objects_static or []

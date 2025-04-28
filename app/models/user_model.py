@@ -9,4 +9,3 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     email = Column(String, unique=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    alerts = relationship("Alert", back_populates="user")
