@@ -13,3 +13,8 @@ uploads/*
 *.pyd
 *.sqlite3
 *.c
+auto_detection.py
+convert_seg_to_det.py
+keep_first_line.py
+merge_datasets.py
+update_class.py

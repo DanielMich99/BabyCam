@@ -1,72 +1,53 @@
-import cv2
-import numpy as np
+from ultralytics import YOLO
 import os
 from sqlalchemy.orm import Session
 from app.models.detection_result_model import DetectionResult
 from fastapi import HTTPException
 from app.utils.config import config
+from datetime import datetime
 
-# הגדרת נתיבים לקובצי YOLO
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # יוצא מהתיקייה services
-YOLO_WEIGHTS_PATH = os.path.join(BASE_DIR, "yolov3.weights")
-YOLO_CFG_PATH = os.path.join(BASE_DIR, "yolov3.cfg")
-COCO_NAMES_PATH = os.path.join(BASE_DIR, "coco.names")
+# טען את המודל המאומן
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+YOLO_MODEL_PATH = os.path.join(BASE_DIR, "best.pt")  # הנחתי שזה השם
+model = YOLO(YOLO_MODEL_PATH)
 
-# וידוא שהקבצים קיימים
-if not os.path.exists(YOLO_WEIGHTS_PATH):
-    raise FileNotFoundError(f"yolov3.weights not found at {YOLO_WEIGHTS_PATH}")
-if not os.path.exists(YOLO_CFG_PATH):
-    raise FileNotFoundError(f"yolov3.cfg not found at {YOLO_CFG_PATH}")
-if not os.path.exists(COCO_NAMES_PATH):
-    raise FileNotFoundError(f"coco.names not found at {COCO_NAMES_PATH}")
+# שמות הקלאסים לפי סדר האימון
+CLASSES = ['knife', 'scissors', 'window', 'pill', 'toilet']
 
-# טעינת המודל של YOLO
-net = cv2.dnn.readNet(YOLO_WEIGHTS_PATH, YOLO_CFG_PATH)
-layer_names = net.getLayerNames()
-output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
+def detect_objects(db: Session, baby_profile_id: int):
+    """Detect objects using YOLOv8 and save to DB"""
+    image_path = os.path.join(config.UPLOAD_DIR, str(baby_profile_id), "last_frame.jpg")
 
-# טעינת רשימת האובייקטים מ-coco.names
-with open(COCO_NAMES_PATH, "r") as f:
-    classes = [line.strip() for line in f.readlines()]
-
-# ✅ **1. זיהוי אובייקטים ושמירתם ב-DB**
-def detect_objects(db: Session, user_id: int):
-    """מפעיל זיהוי אובייקטים על התמונה האחרונה של המשתמש"""
-    image_path = os.path.join(config.UPLOAD_DIR, str(user_id), "last_frame.jpg")
-    
     if not os.path.exists(image_path):
-        raise HTTPException(status_code=404, detail="No image found for this user")
+        raise HTTPException(status_code=404, detail="No image found for this baby profile")
 
-    image = cv2.imread(image_path)
-    height, width, _ = image.shape
-
-    # עיבוד התמונה עם YOLO
-    blob = cv2.dnn.blobFromImage(image, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
-    net.setInput(blob)
-    detections = net.forward(output_layers)
+    results = model(image_path)
+    detections = results[0].boxes
 
     detected_objects = []
 
-    for output in detections:
-        for detection in output:
-            scores = detection[5:]
-            class_id = np.argmax(scores)
-            confidence = scores[class_id]
+    for box in detections:
+        class_id = int(box.cls[0])
+        confidence = float(box.conf[0])
+        obj_name = CLASSES[class_id]
 
-            if confidence > 0.5:  # סף זיהוי
-                detected_objects.append(classes[class_id])
+        detected_objects.append(obj_name)
 
-    # ✅ שמירת תוצאות הזיהוי ב-DB
-    for obj in detected_objects:
-        new_detection = DetectionResult(user_id=user_id, detected_object=obj, confidence=int(confidence * 100))
-        db.add(new_detection)
+        detection_record = DetectionResult(
+            baby_profile_id=baby_profile_id,
+            detected_object=obj_name,
+            confidence=int(confidence * 100),
+            timestamp=datetime.utcnow()
+        )
+        db.add(detection_record)
+
     db.commit()
-    return detected_objects
+    return {"detected_objects": detected_objects}
 
 # ✅ **2. שליפת תוצאות זיהוי אחרונות מה-DB**
-def get_last_detection_results(db: Session, user_id: int):
+def get_last_detection_results(db: Session, baby_profile_id: int):
     """מחזיר את תוצאות הזיהוי האחרונות מה-DB"""
-    results = db.query(DetectionResult).filter(DetectionResult.user_id == user_id).all()
+    results = db.query(DetectionResult).filter(DetectionResult.baby_profile_id == baby_profile_id).all()
     if not results:
         raise HTTPException(status_code=404, detail="No detection results found")
 

@@ -3,11 +3,11 @@ from app.models.alert_model import Alert
 from fastapi import HTTPException
 
 # ✅ **1. שמירת התראה חדשה ב-DB**
-def save_alert(db: Session, user_id: int, alert_type: str, description: str):
+def save_alert(db: Session, baby_profile_id: int, objects_detected: list, description: str):
     """שומר התראה חדשה ב-DB"""
     new_alert = Alert(
-        user_id=user_id,
-        alert_type=alert_type,
+        baby_profile_id=baby_profile_id,
+        objects_detected=objects_detected,
         description=description
     )
     db.add(new_alert)
@@ -16,9 +16,9 @@ def save_alert(db: Session, user_id: int, alert_type: str, description: str):
     return {"message": "Alert saved successfully"}
 
 # ✅ **2. שליפת כל ההתראות של המשתמש מה-DB**
-def fetch_alerts(db: Session, user_id: int):
+def fetch_alerts(db: Session, baby_profile_id: int):
     """מחזיר את כל ההתראות של המשתמש מה-DB"""
-    alerts = db.query(Alert).filter(Alert.user_id == user_id).all()
+    alerts = db.query(Alert).filter(Alert.baby_profile_id == baby_profile_id).all()
     if not alerts:
         return []
-    return [{"type": alert.alert_type, "description": alert.description} for alert in alerts]
+    return [{"description": alert.description} for alert in alerts]

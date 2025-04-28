@@ -13,6 +13,9 @@ class BabyProfile(Base):
     sensitivity = Column(String)
     medical_condition = Column(String)
     profile_picture = Column(String, nullable=True)
-    dangerous_objects = Column(JSON, nullable=True)
+    dangerous_objects_AI = Column(JSON, nullable=True)
+    dangerous_objects_static = Column(JSON, nullable=True)
 
     camera = relationship("Camera", back_populates="profile", uselist=False)
+    alerts = relationship("Alert", back_populates="baby_profile")
+    detection_results = relationship("DetectionResult", back_populates="baby_profile")

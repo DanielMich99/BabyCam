@@ -24,7 +24,7 @@ def get_dangerous_objects_from_ai(db: Session, profile_id: int):
     dangerous_objects = get_ai_response(prompt)
     
     # ✅ שמירת חפצים מסוכנים בפרופיל
-    profile.dangerous_objects = dangerous_objects
+    profile.dangerous_objects_AI = dangerous_objects
     db.commit()
     db.refresh(profile)
     
@@ -38,4 +38,4 @@ def get_profile_dangerous_objects(db: Session, profile_id: int):
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
     
-    return profile.dangerous_objects or []
+    return profile.dangerous_objects_AI or []
