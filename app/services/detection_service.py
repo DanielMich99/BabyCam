@@ -5,6 +5,8 @@ from app.models.detection_result_model import DetectionResult
 from fastapi import HTTPException
 from app.utils.config import config
 from datetime import datetime
+import shutil
+import glob
 
 # טען את המודל המאומן
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -15,17 +17,25 @@ model = YOLO(YOLO_MODEL_PATH)
 CLASSES = ['knife', 'scissors', 'window', 'pill', 'toilet']
 
 def detect_objects(db: Session, baby_profile_id: int):
-    """Detect objects using YOLOv8 and save to DB"""
     image_path = os.path.join(config.UPLOAD_DIR, str(baby_profile_id), "last_frame.jpg")
-
     if not os.path.exists(image_path):
         raise HTTPException(status_code=404, detail="No image found for this baby profile")
 
     results = model(image_path)
+
+    # שמירת תמונה עם תיבות לתוך תיקיית המשתמש
+    output_dir = os.path.join(config.UPLOAD_DIR, str(baby_profile_id))
+    os.makedirs(output_dir, exist_ok=True)
+
+    # שמור את התמונה עם bounding boxes בשם קבוע
+    output_path = os.path.join(output_dir, "last_frame_box.jpg")
+    results[0].save(filename=output_path)
+
     detections = results[0].boxes
+    # if detections is None or detections.shape[0] == 0:
+        # raise HTTPException(status_code=404, detail="No objects detected")
 
     detected_objects = []
-
     for box in detections:
         class_id = int(box.cls[0])
         confidence = float(box.conf[0])
@@ -43,6 +53,7 @@ def detect_objects(db: Session, baby_profile_id: int):
 
     db.commit()
     return {"detected_objects": detected_objects}
+
 
 # ✅ **2. שליפת תוצאות זיהוי אחרונות מה-DB**
 def get_last_detection_results(db: Session, baby_profile_id: int):
