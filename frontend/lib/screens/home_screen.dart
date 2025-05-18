@@ -168,6 +168,38 @@ class _HomeScreenState extends State<HomeScreen> {
             BabyProfilesList(
               babies: _babies,
               onBabySelected: _handleBabySelected,
+              onOptionSelected: (index, option) {
+                if (option == 'view') {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text(_babies[index].name),
+                      content: Text('Details for \\${_babies[index].name}'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Close'),
+                        ),
+                      ],
+                    ),
+                  );
+                } else if (option == 'remove') {
+                  setState(() {
+                    _babies.removeAt(index);
+                  });
+                }
+              },
+              onCameraToggle: (index, cameraNumber) {
+                setState(() {
+                  if (cameraNumber == 1) {
+                    _babies[index] = _babies[index]
+                        .copyWith(camera1On: !_babies[index].camera1On);
+                  } else if (cameraNumber == 2) {
+                    _babies[index] = _babies[index]
+                        .copyWith(camera2On: !_babies[index].camera2On);
+                  }
+                });
+              },
             ),
 
             // Bottom Navigation Bar
