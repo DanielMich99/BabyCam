@@ -6,6 +6,9 @@ import '../services/auth_service.dart';
 import '../services/auth_state.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
+import '../components/logo_header.dart';
+import '../components/login_form.dart';
+import '../components/social_login_buttons.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,10 +30,10 @@ class _LoginScreenState extends State<LoginScreen> {
       final result = await googleSignIn.signIn();
       if (result != null) {
         // Handle successful Google sign in
-        print('Google Sign In: ${result.email}');
+        print('Google Sign In: \\${result.email}');
       }
     } catch (error) {
-      print('Google Sign In Error: $error');
+      print('Google Sign In Error: \\${error}');
     }
   }
 
@@ -40,10 +43,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result.status == LoginStatus.success) {
         // Handle successful Facebook sign in
         final userData = await FacebookAuth.instance.getUserData();
-        print('Facebook Sign In: ${userData['email']}');
+        print('Facebook Sign In: \\${userData['email']}');
       }
     } catch (error) {
-      print('Facebook Sign In Error: $error');
+      print('Facebook Sign In Error: \\${error}');
     }
   }
 
@@ -134,119 +137,25 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo and Welcome Text
-                Icon(Icons.baby_changing_station, size: 80, color: Colors.blue),
-                const SizedBox(height: 16),
-                Text(
-                  'Welcome to',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                Text(
-                  'BabyCam',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
+                const LogoHeader(),
                 const SizedBox(height: 32),
-
-                // Login Form
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        controller: _usernameController,
-                        decoration: InputDecoration(
-                          hintText: 'Username',
-                          prefixIcon: const Icon(Icons.person_outline),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your username';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          hintText: 'Password',
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _handleLogin,
-                          style: ElevatedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            backgroundColor: Colors.blue,
-                            disabledBackgroundColor: Colors.blue.withOpacity(
-                              0.6,
-                            ),
-                            elevation: 2,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text(
-                                  'Sign In',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ],
-                  ),
+                LoginForm(
+                  formKey: _formKey,
+                  usernameController: _usernameController,
+                  passwordController: _passwordController,
+                  isLoading: _isLoading,
+                  onLogin: _handleLogin,
                 ),
-                const SizedBox(height: 16),
-
-                // Forgot Password & Sign Up Links
+                const SizedBox(height: 24),
+                SocialLoginButtons(
+                  onGoogleSignIn: _handleGoogleSignIn,
+                  onFacebookSignIn: _handleFacebookSignIn,
+                ),
+                const SizedBox(height: 24),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TextButton(
-                      onPressed: () {
-                        // Handle forgot password
-                      },
-                      child: const Text('Forgot password?'),
-                    ),
+                    const Text("Don't have an account?"),
                     TextButton(
                       onPressed: () {
                         Navigator.push(
@@ -256,51 +165,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         );
                       },
-                      child: const Text('Sign up now!'),
+                      child: const Text('Sign up'),
                     ),
                   ],
-                ),
-
-                const SizedBox(height: 24),
-
-                // Social Login Section
-                const Text(
-                  'Login with Others',
-                  style: TextStyle(color: Colors.black54, fontSize: 14),
-                ),
-                const SizedBox(height: 16),
-
-                // Google Sign In Button
-                OutlinedButton.icon(
-                  onPressed: _handleGoogleSignIn,
-                  icon: const FaIcon(FontAwesomeIcons.google),
-                  label: const Text('Login with Google'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Facebook Sign In Button
-                OutlinedButton.icon(
-                  onPressed: _handleFacebookSignIn,
-                  icon: const FaIcon(FontAwesomeIcons.facebook),
-                  label: const Text('Login with Facebook'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
                 ),
               ],
             ),
