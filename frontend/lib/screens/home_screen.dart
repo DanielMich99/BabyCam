@@ -1,31 +1,12 @@
 import 'package:flutter/material.dart';
 import '../services/auth_state.dart';
+import '../models/notification_item.dart';
+import '../models/baby_profile.dart';
+import '../components/notification_list.dart';
+import '../components/baby_profiles_list.dart';
+import '../components/camera_preview.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
-
-class NotificationItem {
-  final String message;
-  final DateTime time;
-  final bool isRead;
-
-  NotificationItem({
-    required this.message,
-    required this.time,
-    this.isRead = false,
-  });
-}
-
-class BabyProfile {
-  final String name;
-  final String imageUrl;
-  final bool isSelected;
-
-  BabyProfile({
-    required this.name,
-    required this.imageUrl,
-    this.isSelected = false,
-  });
-}
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -95,6 +76,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _handleBabySelected(int index) {
+    setState(() {
+      for (var i = 0; i < _babies.length; i++) {
+        _babies[i] = _babies[i].copyWith(isSelected: i == index);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -125,12 +114,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       Text(
                         widget.username,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.headlineSmall?.copyWith(
-                              color: Colors.blue,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
                     ],
                   ),
@@ -167,144 +155,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Notifications
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                itemCount: _notifications.length,
-                itemBuilder: (context, index) {
-                  final notification = _notifications[index];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8.0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.warning_amber_rounded,
-                        color: Colors.red,
-                      ),
-                      title: Text(
-                        notification.message,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '${notification.time.hour}:${notification.time.minute.toString().padLeft(2, '0')}:${notification.time.second.toString().padLeft(2, '0')}',
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.check_circle,
-                            color: notification.isRead
-                                ? Colors.green
-                                : Colors.grey,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+              child: NotificationList(notifications: _notifications),
             ),
 
-            // Camera Preview Placeholder
+            // Camera Preview
             Expanded(
-              child: Center(
-                child: _isCameraOn
-                    ? Container(
-                        margin: const EdgeInsets.all(16.0),
-                        decoration: BoxDecoration(
-                          color: Colors.black87,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Camera Feed',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      )
-                    : const Icon(
-                        Icons.camera_alt,
-                        size: 48,
-                        color: Colors.grey,
-                      ),
-              ),
+              child: CameraPreview(isCameraOn: _isCameraOn),
             ),
 
             // Baby Profiles
-            Container(
-              height: 120,
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
-              ),
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: 88,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      itemCount: _babies.length,
-                      itemBuilder: (context, index) {
-                        final baby = _babies[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 16.0),
-                          child: Column(
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    for (var b in _babies) {
-                                      b = b.copyWith(isSelected: false);
-                                    }
-                                    _babies[index] = baby.copyWith(
-                                      isSelected: true,
-                                    );
-                                  });
-                                },
-                                child: Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: baby.isSelected
-                                          ? Colors.blue
-                                          : Colors.transparent,
-                                      width: 3,
-                                    ),
-                                  ),
-                                  child: CircleAvatar(
-                                    backgroundImage: AssetImage(baby.imageUrl),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                baby.name,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
+            BabyProfilesList(
+              babies: _babies,
+              onBabySelected: _handleBabySelected,
             ),
 
             // Bottom Navigation Bar
