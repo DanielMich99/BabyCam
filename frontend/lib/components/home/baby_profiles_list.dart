@@ -21,8 +21,8 @@ class BabyProfilesList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 140,
-      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      height: 210,
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
@@ -30,39 +30,43 @@ class BabyProfilesList extends StatelessWidget {
           topRight: Radius.circular(20),
         ),
       ),
-      child: Column(
-        children: [
-          SizedBox(
-            height: 88,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              itemCount: babies.length,
-              itemBuilder: (context, index) {
-                final baby = babies[index];
-                return Padding(
-                  padding: const EdgeInsets.only(right: 16.0),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        itemCount: babies.length,
+        itemBuilder: (context, index) {
+          final baby = babies[index];
+          return Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: GestureDetector(
+              onTap: () => onBabySelected(index),
+              child: Card(
+                elevation: baby.isSelected ? 6 : 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: baby.isSelected ? Colors.blue : Colors.transparent,
+                    width: 2,
+                  ),
+                ),
+                child: Container(
+                  width: 120,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Stack(
                         children: [
-                          GestureDetector(
-                            onTap: () => onBabySelected(index),
-                            child: Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: baby.isSelected
-                                      ? Colors.blue
-                                      : Colors.transparent,
-                                  width: 3,
-                                ),
-                              ),
-                              child: CircleAvatar(
-                                backgroundImage: AssetImage(baby.imageUrl),
-                              ),
+                          CircleAvatar(
+                            radius: 28,
+                            backgroundColor: baby.isSelected
+                                ? Colors.blue[50]
+                                : Colors.grey[200],
+                            child: CircleAvatar(
+                              radius: 25,
+                              backgroundImage: AssetImage(baby.imageUrl),
+                              backgroundColor: Colors.white,
                             ),
                           ),
                           Positioned(
@@ -89,13 +93,15 @@ class BabyProfilesList extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
                       Text(
                         baby.name,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: baby.isSelected ? Colors.blue : Colors.black87,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 6),
                       Row(
@@ -106,32 +112,36 @@ class BabyProfilesList extends StatelessWidget {
                               Icons.videocam,
                               color:
                                   baby.camera1On ? Colors.green : Colors.grey,
+                              size: 20,
                             ),
                             tooltip: 'Camera 1',
                             onPressed: onCameraToggle != null
                                 ? () => onCameraToggle!(index, 1)
                                 : null,
+                            padding: const EdgeInsets.all(4),
                           ),
                           IconButton(
                             icon: Icon(
                               Icons.videocam,
                               color:
                                   baby.camera2On ? Colors.green : Colors.grey,
+                              size: 20,
                             ),
                             tooltip: 'Camera 2',
                             onPressed: onCameraToggle != null
                                 ? () => onCameraToggle!(index, 2)
                                 : null,
+                            padding: const EdgeInsets.all(4),
                           ),
                         ],
                       ),
                     ],
                   ),
-                );
-              },
+                ),
+              ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
