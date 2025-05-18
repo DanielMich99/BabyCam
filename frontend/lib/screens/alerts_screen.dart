@@ -25,6 +25,22 @@ class _AlertsScreenState extends State<AlertsScreen> {
     });
   }
 
+  void _toggleViewed(int index) {
+    setState(() {
+      _notifications[index] = _notifications[index].copyWith(
+        isViewed: !_notifications[index].isViewed,
+      );
+    });
+  }
+
+  void _toggleHandled(int index) {
+    setState(() {
+      _notifications[index] = _notifications[index].copyWith(
+        isHandled: !_notifications[index].isHandled,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,9 +80,31 @@ class _AlertsScreenState extends State<AlertsScreen> {
                       style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                     const SizedBox(width: 8),
-                    Icon(
-                      Icons.check_circle,
-                      color: notification.isRead ? Colors.green : Colors.grey,
+                    IconButton(
+                      icon: Icon(
+                        notification.isViewed
+                            ? Icons.visibility
+                            : Icons.visibility_outlined,
+                        color:
+                            notification.isViewed ? Colors.blue : Colors.grey,
+                      ),
+                      tooltip: notification.isViewed
+                          ? 'Unmark as viewed'
+                          : 'Mark as viewed',
+                      onPressed: () => _toggleViewed(index),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        notification.isHandled
+                            ? Icons.check_circle
+                            : Icons.radio_button_unchecked,
+                        color:
+                            notification.isHandled ? Colors.green : Colors.grey,
+                      ),
+                      tooltip: notification.isHandled
+                          ? 'Unmark as handled'
+                          : 'Mark as handled',
+                      onPressed: () => _toggleHandled(index),
                     ),
                   ],
                 ),
