@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/baby_profile.dart';
+import '../../models/baby_profile.dart';
 
 typedef BabyOptionSelected = void Function(int index, String option);
 typedef CameraToggle = void Function(int index, int cameraNumber);

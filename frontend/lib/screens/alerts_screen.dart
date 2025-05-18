@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/notification_item.dart';
+import '../components/alerts/notification_list.dart';
 
 class AlertsScreen extends StatefulWidget {
   final List<NotificationItem> notifications;

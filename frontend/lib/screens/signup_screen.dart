@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../services/auth_service.dart';
-import '../components/logo_header.dart';
-import '../components/signup_form.dart';
-import '../components/already_have_account.dart';
+import '../components/auth/logo_header.dart';
+import '../components/auth/signup_form.dart';
+import '../components/auth/already_have_account.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});

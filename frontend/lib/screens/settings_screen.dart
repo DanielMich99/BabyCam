@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../components/account_settings_tile.dart';
-import '../components/baby_profiles_tile.dart';
-import '../components/system_settings_tile.dart';
-import '../components/settings_appbar_title.dart';
+import '../components/settings/account_settings_tile.dart';
+import '../components/settings/baby_profiles_tile.dart';
+import '../components/settings/system_settings_tile.dart';
+import '../components/settings/settings_appbar_title.dart';
 import '../screens/home_screen.dart';
 import '../screens/alerts_screen.dart';
 

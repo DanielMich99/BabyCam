@@ -6,9 +6,9 @@ import '../services/auth_service.dart';
 import '../services/auth_state.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
-import '../components/logo_header.dart';
-import '../components/login_form.dart';
-import '../components/social_login_buttons.dart';
+import '../components/auth/logo_header.dart';
+import '../components/auth/login_form.dart';
+import '../components/auth/social_login_buttons.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
