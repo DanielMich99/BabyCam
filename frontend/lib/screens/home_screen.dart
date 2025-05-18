@@ -7,6 +7,7 @@ import '../components/baby_profiles_list.dart';
 import '../components/camera_preview.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
+import 'alerts_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -178,7 +179,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   setState(() {
                     _selectedIndex = index;
                   });
-                  if (index == 3) {
+                  if (index == 2) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            AlertsScreen(notifications: _notifications),
+                      ),
+                    );
+                  } else if (index == 3) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
