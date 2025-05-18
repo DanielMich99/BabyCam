@@ -3,6 +3,8 @@ import '../components/account_settings_tile.dart';
 import '../components/baby_profiles_tile.dart';
 import '../components/system_settings_tile.dart';
 import '../components/settings_appbar_title.dart';
+import '../screens/home_screen.dart';
+import '../screens/alerts_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -16,6 +18,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int babyAgeMonths = 11;
   String healthCondition = 'None';
   final List<String> healthConditions = ['None', 'Allergy', 'Asthma', 'Other'];
+
+  void _handleLogout() {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +42,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              const AccountSettingsTile(),
+              AccountSettingsTile(
+                username: babyName,
+                onUsernameChanged: (value) => setState(() => babyName = value),
+                onLogout: _handleLogout,
+              ),
               BabyProfilesTile(
                 babyName: babyName,
                 babyAgeMonths: babyAgeMonths,
@@ -68,7 +78,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Icon(Icons.settings), label: 'Settings'),
         ],
         onTap: (index) {
-          // Handle navigation
+          if (index == 0) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => HomeScreen(username: babyName)),
+            );
+          } else if (index == 2) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => AlertsScreen(notifications: [])),
+            );
+          } else if (index == 3) {
+            // Already on settings, do nothing
+          }
         },
       ),
     );
