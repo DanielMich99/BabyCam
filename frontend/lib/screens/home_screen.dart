@@ -10,6 +10,7 @@ import '../components/alerts/notification_list.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 import 'alerts_screen.dart';
+import 'camera_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -161,11 +162,6 @@ class _HomeScreenState extends State<HomeScreen> {
               child: NotificationList(notifications: _notifications),
             ),
 
-            // Camera Preview
-            Expanded(
-              child: CameraPreview(isCameraOn: _isCameraOn),
-            ),
-
             // Baby Profiles
             BabyProfilesList(
               babies: _babies,
@@ -213,7 +209,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   setState(() {
                     _selectedIndex = index;
                   });
-                  if (index == 2) {
+                  if (index == 1) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CameraScreen(),
+                      ),
+                    );
+                  } else if (index == 2) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
