@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_state.dart';
 import 'login_screen.dart';
+import 'settings_screen.dart';
 
 class NotificationItem {
   final String message;
@@ -138,7 +139,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       IconButton(
                         icon: const Icon(Icons.settings),
                         onPressed: () {
-                          // Handle settings
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SettingsScreen(),
+                            ),
+                          );
                         },
                       ),
                       const SizedBox(width: 8),
@@ -310,6 +316,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   setState(() {
                     _selectedIndex = index;
                   });
+                  if (index == 3) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SettingsScreen(),
+                      ),
+                    );
+                  }
                 },
                 type: BottomNavigationBarType.fixed,
                 backgroundColor: Colors.white,
