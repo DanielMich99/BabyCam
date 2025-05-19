@@ -10,6 +10,7 @@ from app.routes.baby_profile_routes import router as baby_profile_router
 from app.routes.dangerous_objects_routes import router as dangerous_objects_router
 from app.routes import training_data_routes
 from app.routes.model_update_routes import router as model_update_router
+from app.routes import upload_temp_route 
 from database.init_db import init_db
 import sys
 import os
@@ -41,6 +42,7 @@ app.include_router(baby_profile_router, prefix="/baby_profile", tags=["Baby Prof
 app.include_router(dangerous_objects_router, prefix="/dangerous_objects", tags=["Dangerous Objects"])
 app.include_router(training_data_routes.router)
 app.include_router(model_update_router, tags=["Model Update"])
+app.include_router(upload_temp_route.router)
 
 if __name__ == "__main__":
     import uvicorn
