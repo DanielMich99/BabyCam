@@ -9,12 +9,13 @@ import shutil
 import glob
 
 # טען את המודל המאומן
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-YOLO_MODEL_PATH = os.path.join(BASE_DIR, "best.pt")  # הנחתי שזה השם
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+YOLO_MODEL_PATH = os.path.join(BASE_DIR, "2_head_camera_model.pt")  # הנחתי שזה השם
 model = YOLO(YOLO_MODEL_PATH)
 
 # שמות הקלאסים לפי סדר האימון
-CLASSES = ['knife', 'scissors', 'window', 'pill', 'toilet']
+#CLASSES = ['knife', 'scissors', 'window', 'pill', 'toilet']
+CLASSES = ['pen']
 
 def detect_objects(db: Session, baby_profile_id: int):
     image_path = os.path.join(config.UPLOAD_DIR, str(baby_profile_id), "last_frame.jpg")
@@ -43,15 +44,15 @@ def detect_objects(db: Session, baby_profile_id: int):
 
         detected_objects.append(obj_name)
 
-        detection_record = DetectionResult(
-            baby_profile_id=baby_profile_id,
-            detected_object=obj_name,
-            confidence=int(confidence * 100),
-            timestamp=datetime.utcnow()
-        )
-        db.add(detection_record)
+    #     detection_record = DetectionResult(
+    #         baby_profile_id=baby_profile_id,
+    #         detected_object=obj_name,
+    #         confidence=int(confidence * 100),
+    #         timestamp=datetime.utcnow()
+    #     )
+    #     db.add(detection_record)
 
-    db.commit()
+    # db.commit()
     return {"detected_objects": detected_objects}
 
 

@@ -24,22 +24,23 @@ def process_detection(baby_profile_id: str, file: UploadFile = File(...), db: Se
 
     profile = db.query(BabyProfile).filter(BabyProfile.id == baby_profile_id).first()
 
-    if not profile:
-        raise HTTPException(status_code=404, detail="Baby profile not found")
+    # if not profile:
+    #     raise HTTPException(status_code=404, detail="Baby profile not found")
 
     # קבלת חפצים מסוכנים מומלצים מה-AI על פי מאפייני התינוק
-    dangerous_objects = get_profile_dangerous_objects_static(db, profile.id)
+    #dangerous_objects = get_profile_dangerous_objects_static(db, profile.id)
 
     # בדיקת התאמה בין מה שזוהה לבין החפצים המסוכנים
-    detected_dangerous = [
-    obj for obj in dangerous_objects
-    if obj["name"] in detected_objects]
+    # detected_dangerous = [
+    # obj for obj in dangerous_objects
+    # if obj["name"] in detected_objects]
 
 
-    if detected_dangerous:
-        save_alert(baby_profile_id, detected_dangerous, f"Detected dangerous objects: {', '.join(detected_dangerous)}")
+    # if detected_dangerous:
+    #     save_alert(baby_profile_id, detected_dangerous, f"Detected dangerous objects: {', '.join(detected_dangerous)}")
 
-    return {"detected_objects": detected_objects, "dangerous_objects": detected_dangerous}
+    #return {"detected_objects": detected_objects, "dangerous_objects": detected_dangerous}
+    return {"detected_objects": detected_objects}
 
 def get_last_detection(baby_profile_id: str, db: Session = Depends(get_db)):
     """מחזיר את תוצאות הזיהוי האחרונות של המשתמש"""
