@@ -19,3 +19,4 @@ class BabyProfile(Base):
     camera = relationship("Camera", back_populates="profile", uselist=False)
     alerts = relationship("Alert", back_populates="baby_profile")
     detection_results = relationship("DetectionResult", back_populates="baby_profile")
+    classes = relationship("ClassObject", back_populates="baby_profile")

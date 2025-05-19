@@ -14,6 +14,8 @@ password = urllib.parse.quote_plus(os.getenv("DB_PASSWORD"))
 # יצירת URL תקין לחיבור למסד הנתונים
 DATABASE_URL = f"postgresql://{os.getenv('DB_USERNAME')}:{password}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
 
+print("🔧 DATABASE_URL =", DATABASE_URL)
+
 # יצירת מנוע SQLAlchemy
 engine = create_engine(DATABASE_URL)
 
