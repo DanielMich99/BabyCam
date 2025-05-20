@@ -3,7 +3,7 @@ import shutil
 from app.schemas.model_update_schema import ModelUpdateRequest
 from app.utils.dataset_utils import update_dataset_yaml, rebuild_training_folders, remap_labels_to_new_indexes
 from app.utils.file_utils import delete_class_data, add_class_data, append_to_class_data
-from app.db_utils import update_db_classes, delete_db_classes, insert_new_classes
+from app.db_utils.class_utils import update_db_classes, insert_new_classes, delete_db_classes
 from upload_to_drive import zip_dataset, upload_to_drive
 import requests
 import time
@@ -52,7 +52,7 @@ def train_model_remotely(user_id: int, camera_type: str, strategy: str):
     except Exception as e:
         return {"error": str(e)}
 
-def wait_for_model_file(user_id: int, model_type: str, timeout_sec=300):
+def wait_for_model_file(user_id: int, model_type: str, timeout_sec=600):
     gauth = GoogleAuth()
     gauth.LocalWebserverAuth()
     drive = GoogleDrive(gauth)

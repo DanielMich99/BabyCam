@@ -10,5 +10,6 @@ from app.models import (
     alert_model,
     camera_model,
     detection_result_model,
-    file_model
+    file_model,
+    class_model
 )
