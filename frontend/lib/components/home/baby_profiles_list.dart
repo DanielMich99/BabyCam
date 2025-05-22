@@ -31,112 +31,98 @@ class BabyProfilesList extends StatelessWidget {
         ),
       ),
       child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        scrollDirection: Axis.vertical,
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
         itemCount: babies.length,
         itemBuilder: (context, index) {
           final baby = babies[index];
           return Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: GestureDetector(
-              onTap: () => onBabySelected(index),
-              child: Card(
-                elevation: baby.isSelected ? 6 : 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: baby.isSelected ? Colors.blue : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
-                child: Container(
-                  width: 120,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 28,
-                            backgroundColor: baby.isSelected
-                                ? Colors.blue[50]
-                                : Colors.grey[200],
-                            child: CircleAvatar(
-                              radius: 25,
-                              backgroundImage: AssetImage(baby.imageUrl),
-                              backgroundColor: Colors.white,
-                            ),
-                          ),
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_vert, size: 20),
-                              onSelected: (option) {
-                                if (onOptionSelected != null) {
-                                  onOptionSelected!(index, option);
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(
-                                  value: 'view',
-                                  child: Text('View Details'),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'remove',
-                                  child: Text('Remove Child'),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+            padding: const EdgeInsets.only(bottom: 20.0),
+            child: Card(
+              elevation: 6,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundImage: AssetImage(baby.imageUrl),
+                      backgroundColor: Colors.white,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      baby.name,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        baby.name,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: baby.isSelected ? Colors.blue : Colors.black87,
-                        ),
-                        textAlign: TextAlign.center,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '10 months', // TODO: Replace with real age/status
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                        fontStyle: FontStyle.italic,
                       ),
-                      const SizedBox(height: 6),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          IconButton(
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Tooltip(
+                          message:
+                              baby.camera1On ? 'Camera 1 On' : 'Camera 1 Off',
+                          child: IconButton(
                             icon: Icon(
                               Icons.videocam,
                               color:
                                   baby.camera1On ? Colors.green : Colors.grey,
-                              size: 20,
+                              size: 28,
                             ),
-                            tooltip: 'Camera 1',
                             onPressed: onCameraToggle != null
                                 ? () => onCameraToggle!(index, 1)
                                 : null,
-                            padding: const EdgeInsets.all(4),
                           ),
-                          IconButton(
+                        ),
+                        const SizedBox(width: 16),
+                        Tooltip(
+                          message:
+                              baby.camera2On ? 'Camera 2 On' : 'Camera 2 Off',
+                          child: IconButton(
                             icon: Icon(
                               Icons.videocam,
                               color:
                                   baby.camera2On ? Colors.green : Colors.grey,
-                              size: 20,
+                              size: 28,
                             ),
-                            tooltip: 'Camera 2',
                             onPressed: onCameraToggle != null
                                 ? () => onCameraToggle!(index, 2)
                                 : null,
-                            padding: const EdgeInsets.all(4),
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: IconButton(
+                        icon: const Icon(Icons.settings,
+                            color: Colors.blueAccent, size: 28),
+                        tooltip: 'Manage',
+                        onPressed: onOptionSelected != null
+                            ? () => onOptionSelected!(index, 'view')
+                            : null,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),

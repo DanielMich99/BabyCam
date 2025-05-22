@@ -140,9 +140,10 @@ class _BabiesScreenState extends State<BabiesScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _addNewBaby,
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: const Text('Add Baby'),
       ),
     );
   }
