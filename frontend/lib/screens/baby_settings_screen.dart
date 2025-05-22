@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/baby_profile.dart';
+import 'class_edit_screen.dart';
 
 class BabySettingsScreen extends StatefulWidget {
   final BabyProfile baby;
@@ -224,9 +225,26 @@ class _AddSharpObjectSection extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
-          children: const [
-            Text('Add Sharp Object (Model Training) (placeholder)',
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Add Sharp Object (Model Training)',
                 style: TextStyle(fontSize: 16)),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.edit),
+              label: const Text('Add/Edit Object Class'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ClassEditScreen(
+                      className: 'Sharp Object',
+                      initialImages: const [],
+                    ),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
