@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/baby_profile.dart';
 import 'class_edit_screen.dart';
 
@@ -26,9 +27,6 @@ class _BabySettingsScreenState extends State<BabySettingsScreen> {
               // General Baby Details
               _GeneralBabyDetailsSection(),
               const SizedBox(height: 24),
-              // Dangerous Objects List
-              _DangerousObjectsSection(),
-              const SizedBox(height: 24),
               // Add Sharp Object (Model Training)
               _AddSharpObjectSection(),
               const SizedBox(height: 32),
@@ -53,7 +51,12 @@ class _GeneralBabyDetailsSectionState
     extends State<_GeneralBabyDetailsSection> {
   late TextEditingController _nameController;
   late TextEditingController _ageController;
+  late TextEditingController _weightController;
+  late TextEditingController _heightController;
+  late TextEditingController _customMedicalConditionController;
   String? _imageUrl;
+  String _selectedGender = 'Male';
+  String _selectedMedicalCondition = 'None';
 
   @override
   void initState() {
@@ -65,6 +68,9 @@ class _GeneralBabyDetailsSectionState
     _nameController = TextEditingController(text: baby.name);
     _ageController = TextEditingController(
         text: '10 months'); // Placeholder, replace with baby.age if available
+    _weightController = TextEditingController();
+    _heightController = TextEditingController();
+    _customMedicalConditionController = TextEditingController();
     _imageUrl = baby.imageUrl;
   }
 
@@ -72,6 +78,9 @@ class _GeneralBabyDetailsSectionState
   void dispose() {
     _nameController.dispose();
     _ageController.dispose();
+    _weightController.dispose();
+    _heightController.dispose();
+    _customMedicalConditionController.dispose();
     super.dispose();
   }
 
@@ -79,6 +88,13 @@ class _GeneralBabyDetailsSectionState
     // Placeholder for image picker
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Change picture not implemented.')),
+    );
+  }
+
+  void _saveDetails() {
+    // TODO: Implement save logic
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Saved (UI only, no backend logic)')),
     );
   }
 
@@ -125,89 +141,78 @@ class _GeneralBabyDetailsSectionState
                 border: OutlineInputBorder(),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Dangerous Objects List Section with add/remove functionality
-class _DangerousObjectsSection extends StatefulWidget {
-  @override
-  State<_DangerousObjectsSection> createState() =>
-      _DangerousObjectsSectionState();
-}
-
-class _DangerousObjectsSectionState extends State<_DangerousObjectsSection> {
-  final List<String> _dangerousObjects = ['Knife', 'Scissors', 'Socket'];
-  final TextEditingController _controller = TextEditingController();
-
-  void _addObject() {
-    final text = _controller.text.trim();
-    if (text.isNotEmpty && !_dangerousObjects.contains(text)) {
-      setState(() {
-        _dangerousObjects.add(text);
-        _controller.clear();
-      });
-    }
-  }
-
-  void _removeObject(int index) {
-    setState(() {
-      _dangerousObjects.removeAt(index);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Dangerous Objects',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _dangerousObjects.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(_dangerousObjects[index]),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _removeObject(index),
-                  ),
-                );
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _selectedGender,
+              items: const [
+                DropdownMenuItem(value: 'Male', child: Text('Male')),
+                DropdownMenuItem(value: 'Female', child: Text('Female')),
+                DropdownMenuItem(value: 'Other', child: Text('Other')),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedGender = value ?? 'Male';
+                });
               },
+              decoration: const InputDecoration(
+                labelText: 'Gender',
+                border: OutlineInputBorder(),
+              ),
             ),
-            const Divider(height: 32),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      labelText: 'Add new object',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    onSubmitted: (_) => _addObject(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: _addObject,
-                  child: const Text('Add'),
-                ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _weightController,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Weight (kg)',
+                border: OutlineInputBorder(),
+              ),
+              inputFormatters: [
+                // Only allow numbers and decimal point
+                FilteringTextInputFormatter.allow(RegExp(r'^[0-9]*\.?[0-9]*')),
               ],
             ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _heightController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Height (cm)',
+                border: OutlineInputBorder(),
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+              ],
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _selectedMedicalCondition,
+              items: const [
+                DropdownMenuItem(value: 'None', child: Text('None')),
+                DropdownMenuItem(value: 'Allergy', child: Text('Allergy')),
+                DropdownMenuItem(value: 'Asthma', child: Text('Asthma')),
+                DropdownMenuItem(value: 'Other', child: Text('Other')),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedMedicalCondition = value ?? 'None';
+                });
+              },
+              decoration: const InputDecoration(
+                labelText: 'Medical Condition',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            if (_selectedMedicalCondition == 'Other') ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: _customMedicalConditionController,
+                decoration: const InputDecoration(
+                  labelText: 'Enter custom condition',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
           ],
         ),
       ),
