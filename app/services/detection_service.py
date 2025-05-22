@@ -10,7 +10,7 @@ import glob
 
 # טען את המודל המאומן
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-YOLO_MODEL_PATH = os.path.join(BASE_DIR, "2_head_camera_model.pt")  # הנחתי שזה השם
+YOLO_MODEL_PATH = os.path.join(BASE_DIR,"uploads", "training_data", "1", "head_camera", "1_head_camera_model.pt")  # הנחתי שזה השם
 model = YOLO(YOLO_MODEL_PATH)
 
 # שמות הקלאסים לפי סדר האימון

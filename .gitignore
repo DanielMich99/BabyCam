@@ -20,3 +20,4 @@ merge_datasets.py
 update_class.py
 2_head_camera.zip
 2_head_camera_model.pt
+migrations/versions/9b116c155b3c_add_classes_table.py
