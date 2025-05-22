@@ -118,7 +118,7 @@ class BabyProfilesList extends StatelessWidget {
                             color: Colors.blueAccent, size: 28),
                         tooltip: 'Manage',
                         onPressed: onOptionSelected != null
-                            ? () => onOptionSelected!(index, 'view')
+                            ? () => onOptionSelected!(index, 'settings')
                             : null,
                       ),
                     ),

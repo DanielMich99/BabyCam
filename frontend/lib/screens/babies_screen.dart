@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/baby_profile.dart';
 import '../components/home/baby_profiles_list.dart';
+import '../screens/baby_settings_screen.dart';
 
 class BabiesScreen extends StatefulWidget {
   final List<BabyProfile> babies;
@@ -116,6 +117,14 @@ class _BabiesScreenState extends State<BabiesScreen> {
                             child: const Text('Close'),
                           ),
                         ],
+                      ),
+                    );
+                  } else if (option == 'settings') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            BabySettingsScreen(baby: _babies[index]),
                       ),
                     );
                   } else if (option == 'remove') {
