@@ -11,6 +11,7 @@ import 'login_screen.dart';
 import 'settings_screen.dart';
 import 'alerts_screen.dart';
 import 'camera_screen.dart';
+import 'babies_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -228,6 +229,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
+                        builder: (context) => BabiesScreen(babies: _babies),
+                      ),
+                    );
+                  } else if (index == 4) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
                         builder: (context) => const SettingsScreen(),
                       ),
                     );
@@ -249,6 +257,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   BottomNavigationBarItem(
                     icon: Icon(Icons.notifications),
                     label: 'Alerts',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.child_care),
+                    label: 'Babies',
                   ),
                   BottomNavigationBarItem(
                     icon: Icon(Icons.settings),
