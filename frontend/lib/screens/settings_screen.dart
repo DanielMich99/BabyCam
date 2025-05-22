@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../components/settings/account_settings_tile.dart';
-import '../components/settings/baby_profiles_tile.dart';
 import '../components/settings/system_settings_tile.dart';
 import '../components/settings/settings_appbar_title.dart';
 import '../screens/home_screen.dart';
@@ -47,17 +46,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onUsernameChanged: (value) => setState(() => babyName = value),
                 onLogout: _handleLogout,
               ),
-              BabyProfilesTile(
-                babyName: babyName,
-                babyAgeMonths: babyAgeMonths,
-                healthCondition: healthCondition,
-                healthConditions: healthConditions,
-                onNameChanged: (value) => setState(() => babyName = value),
-                onAgeChanged: (value) => setState(() => babyAgeMonths = value),
-                onHealthChanged: (value) =>
-                    setState(() => healthCondition = value),
-              ),
-              const SystemSettingsTile(),
             ],
           ),
         ),
