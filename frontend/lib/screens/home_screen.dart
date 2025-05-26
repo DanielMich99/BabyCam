@@ -1,30 +1,11 @@
 import 'package:flutter/material.dart';
 import '../services/auth_state.dart';
+import '../models/notification_item.dart';
+import '../models/baby_profile.dart';
+import '../components/home/home_header.dart';
+import '../components/home/custom_bottom_nav.dart';
+import '../components/alerts/notification_list.dart';
 import 'login_screen.dart';
-
-class NotificationItem {
-  final String message;
-  final DateTime time;
-  final bool isRead;
-
-  NotificationItem({
-    required this.message,
-    required this.time,
-    this.isRead = false,
-  });
-}
-
-class BabyProfile {
-  final String name;
-  final String imageUrl;
-  final bool isSelected;
-
-  BabyProfile({
-    required this.name,
-    required this.imageUrl,
-    this.isSelected = false,
-  });
-}
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -94,6 +75,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _handleBabySelected(int index) {
+    setState(() {
+      for (var i = 0; i < _babies.length; i++) {
+        _babies[i] = _babies[i].copyWith(isSelected: i == index);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,230 +99,19 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Welcome, ',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      Text(
-                        widget.username,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.headlineSmall?.copyWith(
-                              color: Colors.blue,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.settings),
-                        onPressed: () {
-                          // Handle settings
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: Icon(
-                          Icons.power_settings_new,
-                          color: _isCameraOn ? Colors.green : Colors.grey,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isCameraOn = !_isCameraOn;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            HomeHeader(
+              username: widget.username,
+              isCameraOn: _isCameraOn,
+              onCameraToggle: (value) => setState(() => _isCameraOn = value),
             ),
-
-            // Notifications
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                itemCount: _notifications.length,
-                itemBuilder: (context, index) {
-                  final notification = _notifications[index];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8.0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.warning_amber_rounded,
-                        color: Colors.red,
-                      ),
-                      title: Text(
-                        notification.message,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '${notification.time.hour}:${notification.time.minute.toString().padLeft(2, '0')}:${notification.time.second.toString().padLeft(2, '0')}',
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.check_circle,
-                            color: notification.isRead
-                                ? Colors.green
-                                : Colors.grey,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+              child: NotificationList(notifications: _notifications),
             ),
-
-            // Camera Preview Placeholder
-            Expanded(
-              child: Center(
-                child: _isCameraOn
-                    ? Container(
-                        margin: const EdgeInsets.all(16.0),
-                        decoration: BoxDecoration(
-                          color: Colors.black87,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Camera Feed',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      )
-                    : const Icon(
-                        Icons.camera_alt,
-                        size: 48,
-                        color: Colors.grey,
-                      ),
-              ),
-            ),
-
-            // Baby Profiles
-            Container(
-              height: 120,
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
-              ),
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: 88,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      itemCount: _babies.length,
-                      itemBuilder: (context, index) {
-                        final baby = _babies[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 16.0),
-                          child: Column(
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    for (var b in _babies) {
-                                      b = b.copyWith(isSelected: false);
-                                    }
-                                    _babies[index] = baby.copyWith(
-                                      isSelected: true,
-                                    );
-                                  });
-                                },
-                                child: Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: baby.isSelected
-                                          ? Colors.blue
-                                          : Colors.transparent,
-                                      width: 3,
-                                    ),
-                                  ),
-                                  child: CircleAvatar(
-                                    backgroundImage: AssetImage(baby.imageUrl),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                baby.name,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Bottom Navigation Bar
-            Container(
-              decoration: const BoxDecoration(color: Colors.white),
-              child: BottomNavigationBar(
-                currentIndex: _selectedIndex,
-                onTap: (index) {
-                  setState(() {
-                    _selectedIndex = index;
-                  });
-                },
-                type: BottomNavigationBarType.fixed,
-                backgroundColor: Colors.white,
-                selectedItemColor: Colors.blue,
-                unselectedItemColor: Colors.grey,
-                items: const [
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.home),
-                    label: 'Home',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.camera_alt),
-                    label: 'Camera',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.notifications),
-                    label: 'Alerts',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.settings),
-                    label: 'Settings',
-                  ),
-                ],
-              ),
+            CustomBottomNav(
+              selectedIndex: _selectedIndex,
+              onTap: (index) => setState(() => _selectedIndex = index),
+              notifications: _notifications,
+              babies: _babies,
             ),
           ],
         ),
