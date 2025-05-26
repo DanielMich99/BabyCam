@@ -3,8 +3,8 @@ import shutil
 from app.schemas.model_update_schema import ModelUpdateRequest
 from app.utils.dataset_utils import update_dataset_yaml, rebuild_training_folders, remap_labels_to_new_indexes
 from app.utils.file_utils import delete_class_data, add_class_data, append_to_class_data
-from app.db_utils.class_utils import update_db_classes, insert_new_classes, delete_db_classes
-from upload_to_drive import zip_dataset, upload_to_drive
+from app.db_utils.class_utils import update_db_classes, insert_new_classes, delete_db_classes, sync_model_indexes_to_classes
+from app.utils.upload_to_drive import zip_dataset, upload_to_drive
 import requests
 import time
 from pydrive.auth import GoogleAuth
@@ -108,12 +108,12 @@ def process_model_update(request: ModelUpdateRequest, db):
     # 2. Add
     for item in request.new_classes:
         add_class_data(model_folder, item, request.baby_profile_id, request.model_type)
-    insert_new_classes(db, request.baby_profile_id, request.new_classes)
+    insert_new_classes(db, request.baby_profile_id, request.new_classes, request.model_type.replace("_model", ""))
     
     # 3. Update
     for item in request.updated_classes:
         append_to_class_data(model_folder, item, request.baby_profile_id, request.model_type)
-    update_db_classes(db, request.baby_profile_id, request.updated_classes)
+    update_db_classes(db, request.baby_profile_id, request.model_type.replace("_model", ""), request.updated_classes)
 
     # ניקוי תיקיית temp אחרי סיום טיפול בקבצים
     shutil.rmtree(os.path.join("uploads", "temp"), ignore_errors=True)
@@ -123,6 +123,7 @@ def process_model_update(request: ModelUpdateRequest, db):
     if request.deleted_classes or request.new_classes:
         class_mapping = update_dataset_yaml(model_folder)
         remap_labels_to_new_indexes(class_mapping, model_folder)
+        sync_model_indexes_to_classes(db, request.baby_profile_id, request.model_type, class_mapping)
         
     rebuild_training_folders(model_folder)
 

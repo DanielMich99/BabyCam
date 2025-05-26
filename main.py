@@ -11,6 +11,8 @@ from app.routes.dangerous_objects_routes import router as dangerous_objects_rout
 from app.routes import training_data_routes
 from app.routes.model_update_routes import router as model_update_router
 from app.routes import upload_temp_routes
+from app.routes.camera_connection_route import router as camera_router
+from app.routes.monitoring_routes import router as monitoring_router
 from database.init_db import init_db
 import sys
 import os
@@ -43,6 +45,8 @@ app.include_router(dangerous_objects_router, prefix="/dangerous_objects", tags=[
 app.include_router(training_data_routes.router)
 app.include_router(model_update_router, tags=["Model Update"])
 app.include_router(upload_temp_routes.router)
+app.include_router(camera_router)
+app.include_router(monitoring_router)
 
 if __name__ == "__main__":
     import uvicorn

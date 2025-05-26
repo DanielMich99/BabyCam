@@ -15,6 +15,8 @@ class BabyProfile(Base):
     profile_picture = Column(String, nullable=True)
     dangerous_objects_AI = Column(JSON, nullable=True)
     dangerous_objects_static = Column(JSON, nullable=True)
+    head_camera_ip = Column(String(100), nullable=True)
+    static_camera_ip = Column(String(100), nullable=True)
 
     camera = relationship("Camera", back_populates="profile", uselist=False)
     alerts = relationship("Alert", back_populates="baby_profile")
