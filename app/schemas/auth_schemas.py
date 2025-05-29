@@ -8,3 +8,6 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+class FCMTokenRequest(BaseModel):
+    token: str

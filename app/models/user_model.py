@@ -9,3 +9,4 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     email = Column(String, unique=True, nullable=False)
     hashed_password = Column(String, nullable=False)
+    fcm_token = Column(String, nullable=True)

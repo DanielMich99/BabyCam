@@ -83,3 +83,11 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
     except jwt.PyJWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
+def update_fcm_token_by_username(db: Session, username: str, token: str):
+    user = db.query(User).filter(User.username == username).first()
+    if user:
+        user.fcm_token = token
+        db.commit()
+    else:
+        raise HTTPException(status_code=404, detail="User not found")

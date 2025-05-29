@@ -13,6 +13,9 @@ class Config:
 
     UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
     ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg"}
+    FCM_SERVER_KEY = os.getenv("FCM_SERVER_KEY")
+    GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")
 
 config = Config()
 

@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "memory": "c",
+        "mutex": "c",
+        "shared_mutex": "c",
+        "array": "c",
+        "ranges": "c",
+        "span": "c",
+        "vector": "c",
+        "xstring": "c",
+        "xutility": "c",
+        "xiosbase": "c"
+    }
+}
