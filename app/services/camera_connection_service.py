@@ -67,4 +67,40 @@ class CameraConnectionManager:
         db.commit()
         db.close()
 
+    def disconnect_camera(self, baby_profile_id: int, camera_type: str):
+        db: Session = SessionLocal()
+        profile = db.query(BabyProfile).filter(BabyProfile.id == baby_profile_id).first()
+
+        if not profile:
+            db.close()
+            return False
+
+        if camera_type == "head_camera":
+            profile.head_camera_ip = None
+        elif camera_type == "static_camera":
+            profile.static_camera_ip = None
+        else:
+            db.close()
+            return False
+
+        db.commit()
+        db.close()
+        return True
+    
+    def reset_all_camera_ips_for_user(self, user_id: int) -> int:
+        db: Session = SessionLocal()
+        profiles = db.query(BabyProfile).filter(BabyProfile.user_id == user_id).all()
+        
+        if not profiles:
+            db.close()
+            return 0
+
+        for profile in profiles:
+            profile.head_camera_ip = None
+            profile.static_camera_ip = None
+
+        db.commit()
+        db.close()
+        return len(profiles)  # נחזיר כמה פרופילים עודכנו
+
 camera_manager = CameraConnectionManager()

@@ -3,8 +3,10 @@ from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session
 from app.models.baby_profile_model import BabyProfile
 from app.utils.detection import start_detection_loop, stop_detection_loop
+from app.schemas.monitoring_schemas import CameraTuple
+from typing import List
 
-async def start_monitoring_service(camera_profiles, db: Session, request: Request):
+async def start_monitoring_service(camera_profiles: List[CameraTuple], db: Session, request: Request):
     active_sessions = []
     origin = request.headers.get("origin") or "http://localhost:3000"
 
@@ -27,7 +29,7 @@ async def start_monitoring_service(camera_profiles, db: Session, request: Reques
 
     return {"status": "monitoring_started", "sessions": len(active_sessions)}
 
-async def stop_monitoring_service(camera_profiles, db: Session):
+async def stop_monitoring_service(camera_profiles: List[CameraTuple], db: Session):
     for item in camera_profiles:
         await stop_detection_loop(item.baby_profile_id, item.camera_type)
         profile = db.query(BabyProfile).filter_by(id=item.baby_profile_id).first()

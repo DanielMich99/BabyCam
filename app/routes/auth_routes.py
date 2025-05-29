@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from app.controllers.auth_controller import register_user, login_user, refresh_access_token
+from app.controllers.auth_controller import register_user, login_user, refresh_access_token, save_fcm_token
 from database.database import get_db
 from fastapi.security import OAuth2PasswordRequestForm
-from app.schemas.auth_schemas import RegisterRequest, LoginRequest
-
+from app.schemas.auth_schemas import RegisterRequest, LoginRequest, FCMTokenRequest
+from app.services.auth_service import get_current_user
 
 router = APIRouter()
 
@@ -19,3 +19,8 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
 @router.post("/refresh")
 def refresh_token(refresh_token: str):
     return refresh_access_token(refresh_token)
+
+#שליחת fcm token מהמכשיר של המשתמש לשרת
+@router.post("/save-fcm-token")
+def set_fcm_token(token_request: FCMTokenRequest, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    return save_fcm_token(token_request.token, db, current_user)
