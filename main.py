@@ -13,6 +13,7 @@ from app.routes.model_update_routes import router as model_update_router
 from app.routes import upload_temp_routes
 from app.routes.camera_connection_route import router as camera_router
 from app.routes.monitoring_routes import router as monitoring_router
+from app.routes import baby_profile_routes
 from database.init_db import init_db
 import sys
 import os
@@ -47,6 +48,7 @@ app.include_router(model_update_router, tags=["Model Update"])
 app.include_router(upload_temp_routes.router)
 app.include_router(camera_router)
 app.include_router(monitoring_router)
+app.include_router(baby_profile_routes.router)
 
 if __name__ == "__main__":
     import uvicorn

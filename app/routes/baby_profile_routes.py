@@ -1,14 +1,35 @@
-from fastapi import APIRouter
-from app.controllers.baby_profile_controller import create_profile, get_profiles, update_profile, delete_profile, upload_profile_picture, update_dangerous_objects_ai, get_dangerous_objects_ai, update_dangerous_objects_static, get_dangerous_objects_static
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.schemas import baby_profile_schema
+from app.controllers import baby_profile_controller
+from database.database import get_db
+from app.services.auth_service import get_current_user
+from app.models.user_model import User
 
-router = APIRouter()
+router = APIRouter(prefix="/baby_profiles", tags=["Baby Profiles"])
 
-router.post("/create/{user_id}")(create_profile)
-router.get("/list/{user_id}")(get_profiles)
-router.put("/update/{user_id}/{profile_id}")(update_profile)
-router.delete("/delete/{user_id}/{profile_id}")(delete_profile)
-router.post("/upload_picture/{user_id}/{profile_id}")(upload_profile_picture)
-router.put("/update_dangerous_objects_AI/{profile_id}")(update_dangerous_objects_ai)
-router.get("/get_dangerous_objects_AI/{profile_id}")(get_dangerous_objects_ai)
-router.put("/update_dangerous_objects_static/{profile_id}")(update_dangerous_objects_static)
-router.get("/get_dangerous_objects_static/{profile_id}")(get_dangerous_objects_static)
+# יצירה מאובטחת (דריסה של user_id מה-token)
+@router.post("/", response_model=baby_profile_schema.BabyProfileOut)
+def create_baby_profile(profile: baby_profile_schema.BabyProfileCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    profile.user_id = current_user.id
+    return baby_profile_controller.create_baby_profile_controller(db, profile)
+
+# שליפה של כל הפרופילים של היוזר
+@router.get("/my_profiles", response_model=list[baby_profile_schema.BabyProfileOut])
+def get_my_baby_profiles(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return baby_profile_controller.get_baby_profiles_by_user_controller(db, current_user.id)
+
+# שליפה של פרופיל בודד לפי id (מאובטח)
+@router.get("/{profile_id}", response_model=baby_profile_schema.BabyProfileOut)
+def get_baby_profile(profile_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return baby_profile_controller.get_baby_profile_by_user_controller(db, profile_id, current_user.id)
+
+# עדכון (מאובטח)
+@router.put("/{profile_id}", response_model=baby_profile_schema.BabyProfileOut)
+def update_baby_profile(profile_id: int, profile_update: baby_profile_schema.BabyProfileUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return baby_profile_controller.update_baby_profile_by_user_controller(db, profile_id, current_user.id, profile_update)
+
+# מחיקה (מאובטח)
+@router.delete("/{profile_id}", response_model=baby_profile_schema.BabyProfileOut)
+def delete_baby_profile(profile_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return baby_profile_controller.delete_baby_profile_by_user_controller(db, profile_id, current_user.id)
