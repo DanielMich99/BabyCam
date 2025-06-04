@@ -1,43 +1,49 @@
 from sqlalchemy.orm import Session
 from app.models.user_model import User
+from app.schemas import user_schema
 from app.utils.hashing import hash_password
-from fastapi import HTTPException
 
-# ✅ **1. שליפת משתמש לפי שם משתמש**
-def find_user(db: Session, username: str):
-    user = db.query(User).filter(User.username == username).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
+# יצירה
+def create_user(db: Session, user_data: user_schema.UserCreate):
+    hashed_pw = hash_password(user_data.password)
+    db_user = User(
+        username=user_data.username,
+        email=user_data.email,
+        hashed_password=hashed_pw
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
 
-# ✅ **2. עדכון פרטי משתמש**
-def modify_user_data(db: Session, username: str, new_email: str, new_password: str):
-    user = find_user(db, username)
-    
-    # עדכון הנתונים
-    user.email = new_email
-    user.hashed_password = hash_password(new_password)
+# שליפה לפי ID
+def get_user_by_id(db: Session, user_id: int):
+    return db.query(User).filter(User.id == user_id).first()
+
+# עדכון
+def update_user(db: Session, user_id: int, update_data: user_schema.UserUpdate):
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if db_user is None:
+        return None
+
+    update_dict = update_data.dict(exclude_unset=True)
+
+    if "password" in update_dict and update_dict["password"] is not None:
+        update_dict["hashed_password"] = hash_password(update_dict.pop("password"))
+
+    for key, value in update_dict.items():
+        setattr(db_user, key, value)
 
     db.commit()
-    db.refresh(user)
-    return {"message": "User updated successfully"}
+    db.refresh(db_user)
+    return db_user
 
-# ✅ **3. מחיקת משתמש מהמערכת**
-def remove_user_data(db: Session, username: str):
-    user = find_user(db, username)
-    
-    db.delete(user)
-    db.commit()
-    
-    return {"message": "User deleted successfully"}
+# מחיקה
+def delete_user(db: Session, user_id: int):
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if db_user is None:
+        return None
 
-# ✅ **4. יצירת משתמש חדש**
-def create_user(db: Session, username: str, email: str, password: str):
-    hashed_password = hash_password(password)
-    new_user = User(username=username, email=email, hashed_password=hashed_password)
-    
-    db.add(new_user)
+    db.delete(db_user)
     db.commit()
-    db.refresh(new_user)
-    
-    return {"message": "User created successfully", "username": new_user.username}
+    return db_user

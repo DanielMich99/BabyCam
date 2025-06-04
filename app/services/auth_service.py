@@ -5,7 +5,7 @@ from fastapi import HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from app.models.user_model import User
 from app.utils.config import config
-from app.services.user_service import find_user, create_user
+from app.services.user_service import create_user
 from database.database import get_db
 from fastapi.security import OAuth2PasswordBearer
 

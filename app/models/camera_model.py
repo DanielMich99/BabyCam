@@ -10,5 +10,6 @@ class Camera(Base):
     url = Column(String, nullable=False)
     active = Column(Boolean, default=True)
 
-   # קשר לפרופיל התינוק
-   # profile = relationship("BabyProfile", back_populates="camera")
+
+    # קשר לפרופיל התינוק
+    #profile = relationship("BabyProfile", back_populates="camera")
