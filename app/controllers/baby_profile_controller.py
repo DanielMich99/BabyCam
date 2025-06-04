@@ -1,66 +1,33 @@
-from fastapi import HTTPException, File, UploadFile, Depends
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from app.services.baby_profile_service import save_profile, fetch_profiles, modify_profile, remove_profile, save_profile_picture, update_profile_dangerous_objects_ai, get_profile_dangerous_objects_ai, update_profile_dangerous_objects_static, get_profile_dangerous_objects_static
-from database.database import get_db
-from fastapi import Body
+from app.schemas import baby_profile_schema
+from app.services import baby_profile_service
 
-def create_profile(user_id: int, name: str, age: int, height: int, sensitivity: str,
-                   medical_condition: str, profile_picture: str = None, db: Session = Depends(get_db)):
-    success = save_profile(db, user_id, name, age, height, sensitivity, medical_condition, profile_picture)
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to save profile")
-    return {"message": "Profile created successfully"}
+# יצירה
+def create_baby_profile_controller(db: Session, profile: baby_profile_schema.BabyProfileCreate):
+    return baby_profile_service.create_baby_profile(db, profile)
 
-def get_profiles(user_id: str, db: Session = Depends(get_db)):
-    """מציג את כל הפרופילים של המשתמש"""
-    profiles = fetch_profiles(db, user_id)
-    return {"profiles": profiles}
+# שליפה של כולם לפי יוזר
+def get_baby_profiles_by_user_controller(db: Session, user_id: int):
+    return baby_profile_service.get_baby_profiles_by_user_id(db, user_id)
 
-def update_profile(user_id: str, profile_id: int, name: str, age: int, height: int, sensitivity: str, medical_condition: str, db: Session = Depends(get_db)):
-    """מעדכן פרטי פרופיל"""
-    success = modify_profile(db, profile_id, name, age, height, sensitivity, medical_condition)
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to update profile")
-    return {"message": "Profile updated successfully"}
+# שליפה בודדת לפי id ויוזר - מאובטח
+def get_baby_profile_by_user_controller(db: Session, profile_id: int, user_id: int):
+    profile = baby_profile_service.get_baby_profile_by_user(db, profile_id, user_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Baby profile not found or unauthorized")
+    return profile
 
-def delete_profile(user_id: str, profile_id: int, db: Session = Depends(get_db)):
-    """מוחק פרופיל"""
-    success = remove_profile(db, user_id, profile_id)
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to delete profile")
-    return {"message": "Profile deleted successfully"}
+# עדכון - מאובטח
+def update_baby_profile_by_user_controller(db: Session, profile_id: int, user_id: int, profile_update: baby_profile_schema.BabyProfileUpdate):
+    profile = baby_profile_service.update_baby_profile_by_user(db, profile_id, user_id, profile_update)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Baby profile not found or unauthorized")
+    return profile
 
-def upload_profile_picture(user_id: str, profile_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
-    """שומר תמונה עבור פרופיל של תינוק"""
-    image_url = save_profile_picture(db, user_id, profile_id, file)
-    if not image_url:
-        raise HTTPException(status_code=500, detail="Failed to save profile picture")
-    return {"message": "Profile picture uploaded successfully", "image_url": image_url}
-
-def update_dangerous_objects_ai(profile_id: int, dangerous_objects_AI: list = Body(...), db: Session = Depends(get_db)):
-    """מעדכן את רשימת החפצים המסוכנים בפרופיל של התינוק"""
-    success = update_profile_dangerous_objects_ai(db, profile_id, dangerous_objects_AI)
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to update dangerous objects")
-    return {"message": "Dangerous objects updated successfully"}
-
-def get_dangerous_objects_ai(profile_id: int, db: Session = Depends(get_db)):
-    """מחזיר את רשימת החפצים המסוכנים ששמורים כרגע בפרופיל התינוק"""
-    dangerous_objects_ai = get_profile_dangerous_objects_ai(db, profile_id)
-    if dangerous_objects_ai is None:
-        raise HTTPException(status_code=404, detail="Profile not found or no dangerous objects saved")
-    return {"dangerous_objects": dangerous_objects_ai}
-
-def update_dangerous_objects_static(profile_id: int, dangerous_objects_static: list = Body(...), db: Session = Depends(get_db)):
-    """מעדכן את רשימת החפצים המסוכנים בפרופיל של התינוק"""
-    success = update_profile_dangerous_objects_static(db, profile_id, dangerous_objects_static)
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to update dangerous objects")
-    return {"message": "Dangerous objects updated successfully"}
-
-def get_dangerous_objects_static(profile_id: int, db: Session = Depends(get_db)):
-    """מחזיר את רשימת החפצים המסוכנים ששמורים כרגע בפרופיל התינוק"""
-    dangerous_objects_static = get_profile_dangerous_objects_static(db, profile_id)
-    if dangerous_objects_static is None:
-        raise HTTPException(status_code=404, detail="Profile not found or no dangerous objects saved")
-    return {"dangerous_objects": dangerous_objects_static}
+# מחיקה - מאובטח
+def delete_baby_profile_by_user_controller(db: Session, profile_id: int, user_id: int):
+    profile = baby_profile_service.delete_baby_profile_by_user(db, profile_id, user_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Baby profile not found or unauthorized")
+    return profile

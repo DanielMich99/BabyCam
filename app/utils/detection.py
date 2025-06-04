@@ -88,13 +88,13 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, model
                                 db.add(detection)
                                 db.commit()
 
-                                class_obj = db.query(ClassObject).filter_by(
+                                '''class_obj = db.query(ClassObject).filter_by(
                                     baby_profile_id=profile_id,
                                     camera_type=camera_type,
                                     model_index=class_id
                                 ).first()
                                 class_name = class_obj.name if class_obj else "unknown"
-                                risk_level = class_obj.risk_level if class_obj else "unknown" 
+                                risk_level = class_obj.risk_level if class_obj else "unknown" '''
 
                                 await notify_frontend_detection(profile_id, camera_type, class_id, class_name, risk_level, float(result.conf), origin)
                                 
