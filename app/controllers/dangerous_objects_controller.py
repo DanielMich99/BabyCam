@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from app.services.baby_profile_service import fetch_profiles
+#from app.services.baby_profile_service import fetch_profiles
 from app.services.dangerous_objects_service import get_dangerous_objects_from_ai
 
 def get_recommended_dangers(user_id: str, profile_id: int):

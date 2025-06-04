@@ -2,7 +2,7 @@ from fastapi import HTTPException, Depends, UploadFile, File
 from sqlalchemy.orm import Session
 from app.models.baby_profile_model import BabyProfile
 from app.services.detection_service import detect_objects, get_last_detection_results
-from app.services.baby_profile_service import get_profile_dangerous_objects_static
+#from app.services.baby_profile_service import get_profile_dangerous_objects_static
 from app.services.alert_service import save_alert
 from database.database import get_db
 from app.utils.config import config
