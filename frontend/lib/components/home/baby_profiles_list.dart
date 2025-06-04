@@ -74,42 +74,6 @@ class BabyProfilesList extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Tooltip(
-                          message:
-                              baby.camera1On ? 'Camera 1 On' : 'Camera 1 Off',
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.videocam,
-                              color:
-                                  baby.camera1On ? Colors.green : Colors.grey,
-                              size: 28,
-                            ),
-                            onPressed: onCameraToggle != null
-                                ? () => onCameraToggle!(index, 1)
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Tooltip(
-                          message:
-                              baby.camera2On ? 'Camera 2 On' : 'Camera 2 Off',
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.videocam,
-                              color:
-                                  baby.camera2On ? Colors.green : Colors.grey,
-                              size: 28,
-                            ),
-                            onPressed: onCameraToggle != null
-                                ? () => onCameraToggle!(index, 2)
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
                     const SizedBox(height: 12),
                     Align(
                       alignment: Alignment.centerRight,
