@@ -104,11 +104,6 @@ class _BabiesScreenState extends State<BabiesScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text('Name: ${_babies[index].name}'),
-                            const SizedBox(height: 8),
-                            Text(
-                                'Camera 1: ${_babies[index].camera1On ? "On" : "Off"}'),
-                            Text(
-                                'Camera 2: ${_babies[index].camera2On ? "On" : "Off"}'),
                           ],
                         ),
                         actions: [
@@ -132,17 +127,6 @@ class _BabiesScreenState extends State<BabiesScreen> {
                       _babies.removeAt(index);
                     });
                   }
-                },
-                onCameraToggle: (index, cameraNumber) {
-                  setState(() {
-                    if (cameraNumber == 1) {
-                      _babies[index] = _babies[index]
-                          .copyWith(camera1On: !_babies[index].camera1On);
-                    } else if (cameraNumber == 2) {
-                      _babies[index] = _babies[index]
-                          .copyWith(camera2On: !_babies[index].camera2On);
-                    }
-                  });
                 },
               ),
             ),

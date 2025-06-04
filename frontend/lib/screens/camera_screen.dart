@@ -130,8 +130,90 @@ class _CameraScreenState extends State<CameraScreen> {
               },
             ),
           ),
+          // Swipeable video preview section (even larger and higher)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 0.0, top: 8.0),
+            child: SizedBox(
+              height: 280,
+              child: _buildCameraPreviewPager(),
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCameraPreviewPager() {
+    // Gather all active cameras
+    final List<Map<String, dynamic>> activeCameras = [];
+    for (final child in _children) {
+      if (child['isStaticCameraActive'] == true) {
+        activeCameras.add({
+          'name': child['name'],
+          'type': 'Static',
+          'imageUrl': child['imageUrl'],
+        });
+      }
+      if (child['isHeadCameraActive'] == true) {
+        activeCameras.add({
+          'name': child['name'],
+          'type': 'Head',
+          'imageUrl': child['imageUrl'],
+        });
+      }
+    }
+    if (activeCameras.isEmpty) {
+      return Center(
+        child: Text(
+          'No active cameras',
+          style: TextStyle(color: Colors.grey[600], fontSize: 16),
+        ),
+      );
+    }
+    return PageView.builder(
+      itemCount: activeCameras.length,
+      controller: PageController(viewportFraction: 0.8),
+      itemBuilder: (context, index) {
+        final cam = activeCameras[index];
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+          child: Card(
+            elevation: 4,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: Colors.black12,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 32,
+                    backgroundImage: AssetImage(cam['imageUrl']),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    cam['name'],
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${cam['type']} Camera',
+                    style:
+                        const TextStyle(fontSize: 14, color: Colors.blueGrey),
+                  ),
+                  const SizedBox(height: 16),
+                  const Icon(Icons.videocam, size: 40, color: Colors.blueGrey),
+                  // Replace above with actual video feed widget if available
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
