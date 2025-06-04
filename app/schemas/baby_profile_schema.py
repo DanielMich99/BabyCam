@@ -35,4 +35,4 @@ class BabyProfileOut(BabyProfileBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attrributes = True

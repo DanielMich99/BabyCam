@@ -11,4 +11,4 @@ class Camera(Base):
     active = Column(Boolean, default=True)
 
     # קשר לפרופיל התינוק
-    profile = relationship("BabyProfile", back_populates="camera")
+    #profile = relationship("BabyProfile", back_populates="camera")
