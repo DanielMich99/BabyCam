@@ -10,4 +10,4 @@ class Alert(Base):
     objects_detected = Column(JSON, nullable=True)
     description = Column(String, nullable=False)
 
-    baby_profile = relationship("BabyProfile", back_populates="alerts")
+    #baby_profile = relationship("BabyProfile", back_populates="alerts")
