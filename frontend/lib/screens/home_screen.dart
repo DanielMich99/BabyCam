@@ -8,6 +8,7 @@ import '../components/home/home_header.dart';
 import '../components/home/custom_bottom_nav.dart';
 import '../components/alerts/notification_list.dart';
 import 'login_screen.dart';
+import '../components/home/add_baby_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -107,10 +108,8 @@ class _HomeScreenState extends State<HomeScreen> {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
               return Center(child: Text('Error: \\${snapshot.error}'));
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text('No babies found.'));
             }
-            final babies = snapshot.data!;
+            final babies = snapshot.data ?? [];
             return Column(
               children: [
                 HomeHeader(

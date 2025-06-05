@@ -84,7 +84,20 @@ class _BabiesScreenState extends State<BabiesScreen> {
             } else if (snapshot.hasError) {
               return Center(child: Text('Error: \\${snapshot.error}'));
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text('No babies found.'));
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('No babies found.'),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Baby'),
+                      onPressed: _addNewBaby,
+                    ),
+                  ],
+                ),
+              );
             }
             final babies = snapshot.data!;
             return Column(

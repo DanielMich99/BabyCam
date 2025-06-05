@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../models/baby_profile.dart';
 import '../components/camera/child_camera_cube.dart';
 import '../services/auth_state.dart';
+import '../components/home/add_baby_dialog.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({Key? key}) : super(key: key);
