@@ -129,6 +129,9 @@ class _HomeScreenState extends State<HomeScreen> {
               return Center(child: Text('Error: \\${snapshot.error}'));
             }
             final babies = snapshot.data ?? [];
+            final Map<int, String> babyProfileNames = {
+              for (var baby in babies) baby.id: baby.name,
+            };
             return Column(
               children: [
                 HomeHeader(
@@ -144,6 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   selectedIndex: _selectedIndex,
                   onTap: (index) => setState(() => _selectedIndex = index),
                   notifications: _notifications,
+                  babyProfileNames: babyProfileNames,
                 ),
               ],
             );

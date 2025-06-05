@@ -4,10 +4,12 @@ import '../services/detection_service.dart';
 
 class AlertsScreen extends StatefulWidget {
   final DetectionService detectionService;
+  final Map<int, String> babyProfileNames;
 
   const AlertsScreen({
     Key? key,
     required this.detectionService,
+    required this.babyProfileNames,
   }) : super(key: key);
 
   @override
@@ -18,6 +20,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
   List<NotificationItem> _notifications = [];
   bool _isLoading = true;
   String? _error;
+  String _sortBy = 'time'; // 'time' or 'name'
 
   @override
   void initState() {
@@ -105,6 +108,19 @@ class _AlertsScreenState extends State<AlertsScreen> {
       );
     }
 
+    // Sort notifications based on _sortBy
+    List<NotificationItem> sortedNotifications = List.from(_notifications);
+    if (_sortBy == 'name') {
+      sortedNotifications.sort((a, b) {
+        final nameA = widget.babyProfileNames[a.babyProfileId] ?? '';
+        final nameB = widget.babyProfileNames[b.babyProfileId] ?? '';
+        return nameA.compareTo(nameB);
+      });
+    } else {
+      // Default: sort by time, newest first
+      sortedNotifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detection Alerts'),
@@ -115,136 +131,143 @@ class _AlertsScreenState extends State<AlertsScreen> {
           ),
         ],
       ),
-      body: _notifications.isEmpty
-          ? const Center(
-              child: Text(
-                'No detection alerts yet',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                const Text('Sort by:'),
+                const SizedBox(width: 8),
+                DropdownButton<String>(
+                  value: _sortBy,
+                  items: const [
+                    DropdownMenuItem(
+                        value: 'time', child: Text('Time (Newest)')),
+                    DropdownMenuItem(value: 'name', child: Text('Baby Name')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _sortBy = value;
+                      });
+                    }
+                  },
                 ),
-              ),
-            )
-          : ListView.builder(
-              itemCount: _notifications.length,
-              itemBuilder: (context, index) {
-                final notification = _notifications[index];
-                return Dismissible(
-                  key: ValueKey(notification.id),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: const Icon(Icons.delete, color: Colors.white),
-                  ),
-                  onDismissed: (direction) =>
-                      _deleteNotification(notification.id),
-                  child: Card(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.warning_amber_rounded,
-                                color: Colors.red.shade700,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  notification.className,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                '${(notification.confidence * 100).toStringAsFixed(1)}%',
-                                style: TextStyle(
-                                  color: notification.confidence > 0.8
-                                      ? Colors.red
-                                      : Colors.orange,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.videocam,
-                                size: 16,
-                                color: Colors.grey.shade600,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                notification.cameraType,
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                '${notification.timestamp.hour}:${notification.timestamp.minute.toString().padLeft(2, '0')}:${notification.timestamp.second.toString().padLeft(2, '0')}',
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  notification.isViewed
-                                      ? Icons.visibility
-                                      : Icons.visibility_outlined,
-                                  color: notification.isViewed
-                                      ? Colors.blue
-                                      : Colors.grey,
-                                ),
-                                tooltip: notification.isViewed
-                                    ? 'Unmark as viewed'
-                                    : 'Mark as viewed',
-                                onPressed: () => _toggleViewed(index),
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  notification.isHandled
-                                      ? Icons.check_circle
-                                      : Icons.radio_button_unchecked,
-                                  color: notification.isHandled
-                                      ? Colors.green
-                                      : Colors.grey,
-                                ),
-                                tooltip: notification.isHandled
-                                    ? 'Unmark as handled'
-                                    : 'Mark as handled',
-                                onPressed: () => _toggleHandled(index),
-                              ),
-                            ],
-                          ),
-                        ],
+              ],
+            ),
+          ),
+          Expanded(
+            child: sortedNotifications.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No detection alerts yet',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
                       ),
                     ),
+                  )
+                : ListView.builder(
+                    itemCount: sortedNotifications.length,
+                    itemBuilder: (context, index) {
+                      final notification = sortedNotifications[index];
+                      final babyName =
+                          widget.babyProfileNames[notification.babyProfileId] ??
+                              'Unknown';
+                      return Dismissible(
+                        key: ValueKey(notification.id),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        onDismissed: (direction) =>
+                            _deleteNotification(notification.id),
+                        child: Card(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  babyName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: Colors.blueGrey,
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.warning_amber_rounded,
+                                      color: Colors.red.shade700,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        notification.className,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '${(notification.confidence * 100).toStringAsFixed(1)}%',
+                                      style: TextStyle(
+                                        color: notification.confidence > 0.8
+                                            ? Colors.red
+                                            : Colors.orange,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.videocam,
+                                      size: 16,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      notification.cameraType,
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      '${notification.timestamp.hour}:${notification.timestamp.minute.toString().padLeft(2, '0')}:${notification.timestamp.second.toString().padLeft(2, '0')}',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
+          ),
+        ],
+      ),
     );
   }
 }

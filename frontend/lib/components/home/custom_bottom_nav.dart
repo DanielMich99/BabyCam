@@ -10,12 +10,14 @@ class CustomBottomNav extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onTap;
   final List<NotificationItem> notifications;
+  final Map<int, String> babyProfileNames;
 
   const CustomBottomNav({
     Key? key,
     required this.selectedIndex,
     required this.onTap,
     required this.notifications,
+    required this.babyProfileNames,
   }) : super(key: key);
 
   void _handleNavigation(BuildContext context, int index) {
@@ -34,6 +36,7 @@ class CustomBottomNav extends StatelessWidget {
           MaterialPageRoute(
             builder: (context) => AlertsScreen(
               detectionService: DetectionService(),
+              babyProfileNames: babyProfileNames,
             ),
           ),
         );
