@@ -76,9 +76,7 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
         updateData: updateData,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully!')),
-        );
+        Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
