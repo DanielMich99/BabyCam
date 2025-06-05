@@ -4,17 +4,20 @@ import '../../screens/alerts_screen.dart';
 import '../../screens/babies_screen.dart';
 import '../../screens/settings_screen.dart';
 import '../../models/notification_item.dart';
+import '../../services/detection_service.dart';
 
 class CustomBottomNav extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onTap;
   final List<NotificationItem> notifications;
+  final Map<int, String> babyProfileNames;
 
   const CustomBottomNav({
     Key? key,
     required this.selectedIndex,
     required this.onTap,
     required this.notifications,
+    required this.babyProfileNames,
   }) : super(key: key);
 
   void _handleNavigation(BuildContext context, int index) {
@@ -31,7 +34,10 @@ class CustomBottomNav extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => AlertsScreen(notifications: notifications),
+            builder: (context) => AlertsScreen(
+              detectionService: DetectionService(),
+              babyProfileNames: babyProfileNames,
+            ),
           ),
         );
         break;

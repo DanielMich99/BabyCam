@@ -8,6 +8,7 @@ import '../components/home/home_header.dart';
 import '../components/home/custom_bottom_nav.dart';
 import '../components/alerts/notification_list.dart';
 import 'login_screen.dart';
+import '../components/home/add_baby_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -24,21 +25,40 @@ class _HomeScreenState extends State<HomeScreen> {
   late Future<List<BabyProfile>> _babiesFuture;
   final List<NotificationItem> _notifications = [
     NotificationItem(
-      message: 'Tom stared at the Electrical Socket',
-      time: DateTime.now().subtract(const Duration(minutes: 2)),
+      id: 1,
+      babyProfileId: 1,
+      classId: 1,
+      className: 'Tom stared at the Electrical Socket',
+      confidence: 0.95,
+      cameraType: 'Front Camera',
+      timestamp: DateTime.now(),
     ),
     NotificationItem(
-      message: 'Tom reached to the Electrical Socket',
-      time: DateTime.now().subtract(const Duration(minutes: 1, seconds: 54)),
+      id: 2,
+      babyProfileId: 1,
+      classId: 2,
+      className: 'Tom reached to the Electrical Socket',
+      confidence: 0.85,
+      cameraType: 'Front Camera',
+      timestamp: DateTime.now(),
     ),
     NotificationItem(
-      message: 'Tom touched the Electrical Socket',
-      time: DateTime.now().subtract(const Duration(minutes: 1, seconds: 52)),
+      id: 3,
+      babyProfileId: 1,
+      classId: 3,
+      className: 'Tom touched the Electrical Socket',
+      confidence: 0.75,
+      cameraType: 'Front Camera',
+      timestamp: DateTime.now(),
     ),
     NotificationItem(
-      message: 'Tom reached to the front door',
-      time: DateTime.now().subtract(const Duration(seconds: 15)),
-      isRead: false,
+      id: 4,
+      babyProfileId: 1,
+      classId: 4,
+      className: 'Tom reached to the front door',
+      confidence: 0.90,
+      cameraType: 'Front Camera',
+      timestamp: DateTime.now(),
     ),
   ];
 
@@ -107,10 +127,11 @@ class _HomeScreenState extends State<HomeScreen> {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
               return Center(child: Text('Error: \\${snapshot.error}'));
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text('No babies found.'));
             }
-            final babies = snapshot.data!;
+            final babies = snapshot.data ?? [];
+            final Map<int, String> babyProfileNames = {
+              for (var baby in babies) baby.id: baby.name,
+            };
             return Column(
               children: [
                 HomeHeader(
@@ -126,6 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   selectedIndex: _selectedIndex,
                   onTap: (index) => setState(() => _selectedIndex = index),
                   notifications: _notifications,
+                  babyProfileNames: babyProfileNames,
                 ),
               ],
             );
