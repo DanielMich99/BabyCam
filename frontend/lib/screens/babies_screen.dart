@@ -6,6 +6,9 @@ import '../screens/baby_settings_screen.dart';
 import '../services/auth_state.dart';
 import 'package:http/http.dart' as http;
 import '../services/baby_profile_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import '../components/home/add_baby_dialog.dart';
 
 class BabiesScreen extends StatefulWidget {
   const BabiesScreen({Key? key}) : super(key: key);
@@ -51,148 +54,19 @@ class _BabiesScreenState extends State<BabiesScreen> {
     });
   }
 
-  void _addNewBaby() {
-    final nameController = TextEditingController();
-    final ageController = TextEditingController();
-    final genderOptions = ['Male', 'Female', 'Other'];
-    String selectedGender = genderOptions[0];
-    final weightController = TextEditingController();
-    final heightController = TextEditingController();
-    final medicalConditionController = TextEditingController();
-    showDialog(
+  void _addNewBaby() async {
+    final result = await showDialog(
       context: context,
-      builder: (context) {
-        bool isLoading = false;
-        return StatefulBuilder(
-          builder: (context, setState) => AlertDialog(
-            title: const Text('Add New Baby'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Baby Name',
-                      hintText: 'Enter baby name',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: ageController,
-                    decoration: const InputDecoration(
-                      labelText: 'Age (months)',
-                      hintText: 'Enter age (optional)',
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: selectedGender,
-                    items: genderOptions
-                        .map((g) => DropdownMenuItem(
-                              value: g,
-                              child: Text(g),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedGender = value ?? genderOptions[0];
-                      });
-                    },
-                    decoration: const InputDecoration(
-                      labelText: 'Gender',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: weightController,
-                    decoration: const InputDecoration(
-                      labelText: 'Weight (kg)',
-                      hintText: 'Enter weight (optional)',
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: heightController,
-                    decoration: const InputDecoration(
-                      labelText: 'Height (cm)',
-                      hintText: 'Enter height (optional)',
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: medicalConditionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Medical Condition',
-                      hintText: 'Enter medical condition (optional)',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: isLoading
-                    ? null
-                    : () async {
-                        if (nameController.text.trim().isEmpty) return;
-                        setState(() => isLoading = true);
-                        try {
-                          final data = {
-                            'name': nameController.text.trim(),
-                            if (ageController.text.trim().isNotEmpty)
-                              'age': int.tryParse(ageController.text.trim()),
-                            'gender': selectedGender,
-                            if (weightController.text.trim().isNotEmpty)
-                              'weight':
-                                  double.tryParse(weightController.text.trim()),
-                            if (heightController.text.trim().isNotEmpty)
-                              'height':
-                                  int.tryParse(heightController.text.trim()),
-                            if (medicalConditionController.text
-                                .trim()
-                                .isNotEmpty)
-                              'medical_condition':
-                                  medicalConditionController.text.trim(),
-                          };
-                          await BabyProfileService.createBabyProfile(data);
-                          if (mounted) {
-                            Navigator.pop(context);
-                            setState(() {
-                              _babiesFuture = fetchBabies();
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Baby added successfully!')),
-                            );
-                          }
-                        } catch (e) {
-                          setState(() => isLoading = false);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Failed to add baby: $e')),
-                          );
-                        }
-                      },
-                child: isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Add'),
-              ),
-            ],
-          ),
-        );
-      },
+      builder: (context) => const AddBabyDialog(),
     );
+    if (result == true) {
+      setState(() {
+        _babiesFuture = fetchBabies();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Baby added successfully!')),
+      );
+    }
   }
 
   @override

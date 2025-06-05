@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/baby_profile.dart';
+import 'dart:convert';
 
 typedef BabyOptionSelected = void Function(int index, String option);
 typedef CameraToggle = void Function(int index, int cameraNumber);
@@ -17,6 +18,24 @@ class BabyProfilesList extends StatelessWidget {
     this.onOptionSelected,
     this.onCameraToggle,
   }) : super(key: key);
+
+  ImageProvider _getProfileImage(String? profilePicture) {
+    if (profilePicture != null) {
+      if (profilePicture.startsWith('/9j/') ||
+          profilePicture.startsWith('iVBOR') ||
+          profilePicture.startsWith('data:image')) {
+        try {
+          final base64Str = profilePicture.contains(',')
+              ? profilePicture.split(',').last
+              : profilePicture;
+          return MemoryImage(base64Decode(base64Str));
+        } catch (_) {}
+      } else {
+        return AssetImage(profilePicture);
+      }
+    }
+    return const AssetImage('assets/images/default_baby.jpg');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,8 +70,7 @@ class BabyProfilesList extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 40,
-                      backgroundImage: AssetImage(baby.profilePicture ??
-                          'assets/images/default_baby.jpg'),
+                      backgroundImage: _getProfileImage(baby.profilePicture),
                       backgroundColor: Colors.white,
                     ),
                     const SizedBox(height: 16),
@@ -64,15 +82,6 @@ class BabyProfilesList extends StatelessWidget {
                         color: Colors.black87,
                       ),
                       textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '10 months', // TODO: Replace with real age/status
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                        fontStyle: FontStyle.italic,
-                      ),
                     ),
                     const SizedBox(height: 16),
                     const SizedBox(height: 12),

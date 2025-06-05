@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 
 class ChildCameraCube extends StatefulWidget {
   final String childName;
@@ -23,6 +24,24 @@ class ChildCameraCube extends StatefulWidget {
 }
 
 class _ChildCameraCubeState extends State<ChildCameraCube> {
+  ImageProvider _getProfileImage(String? profilePicture) {
+    if (profilePicture != null) {
+      if (profilePicture.startsWith('/9j/') ||
+          profilePicture.startsWith('iVBOR') ||
+          profilePicture.startsWith('data:image')) {
+        try {
+          final base64Str = profilePicture.contains(',')
+              ? profilePicture.split(',').last
+              : profilePicture;
+          return MemoryImage(base64Decode(base64Str));
+        } catch (_) {}
+      } else {
+        return AssetImage(profilePicture);
+      }
+    }
+    return const AssetImage('assets/images/default_baby.jpg');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -37,8 +56,7 @@ class _ChildCameraCubeState extends State<ChildCameraCube> {
             // Child's image or placeholder
             CircleAvatar(
               radius: 40,
-              backgroundImage: AssetImage(
-                  widget.profilePicture ?? 'assets/images/default_baby.jpg'),
+              backgroundImage: _getProfileImage(widget.profilePicture),
               child: widget.profilePicture == null
                   ? const Icon(Icons.person, size: 40, color: Colors.grey)
                   : null,

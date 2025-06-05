@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/baby_profile.dart';
 import '../../services/baby_profile_service.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class GeneralBabyDetailsSection extends StatefulWidget {
   final BabyProfile baby;
@@ -24,6 +27,7 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
   String _selectedMedicalCondition = 'None';
   bool _settingsExpanded = false;
   bool _isSaving = false;
+  File? _pickedImageFile;
 
   @override
   void initState() {
@@ -46,10 +50,15 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
     super.dispose();
   }
 
-  void _changePicture() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Change picture not implemented.')),
-    );
+  void _changePicture() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _pickedImageFile = File(pickedFile.path);
+        _imageUrl = null; // Clear asset image if new image picked
+      });
+    }
   }
 
   void _saveDetails() async {
@@ -57,6 +66,11 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
       _isSaving = true;
     });
     try {
+      String? base64Image;
+      if (_pickedImageFile != null) {
+        final bytes = await _pickedImageFile!.readAsBytes();
+        base64Image = base64Encode(bytes);
+      }
       final updateData = {
         'name': _nameController.text,
         'age':
@@ -67,7 +81,9 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
         'medical_condition': _selectedMedicalCondition == 'Other'
             ? _customMedicalConditionController.text
             : _selectedMedicalCondition,
-        'profile_picture': _imageUrl,
+        if (base64Image != null) 'profile_picture': base64Image,
+        if (_imageUrl != null && base64Image == null)
+          'profile_picture': _imageUrl,
       };
       // Remove nulls
       updateData.removeWhere((key, value) => value == null);
@@ -98,6 +114,29 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
       const SnackBar(
           content: Text('Changes discarded (UI only, no backend logic)')),
     );
+  }
+
+  ImageProvider? _getProfileImage() {
+    if (_pickedImageFile != null) {
+      return FileImage(_pickedImageFile!);
+    }
+    if (_imageUrl != null) {
+      // Heuristically check if it's base64 (starts with /9j/ or data:image)
+      if (_imageUrl!.startsWith('/9j/') ||
+          _imageUrl!.startsWith('iVBOR') ||
+          _imageUrl!.startsWith('data:image')) {
+        try {
+          final base64Str = _imageUrl!.contains(',')
+              ? _imageUrl!.split(',').last
+              : _imageUrl!;
+          return MemoryImage(base64Decode(base64Str));
+        } catch (_) {}
+      } else {
+        // Otherwise, treat as asset path
+        return AssetImage(_imageUrl!);
+      }
+    }
+    return const AssetImage('assets/images/default_baby.jpg');
   }
 
   @override
@@ -135,9 +174,8 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
                 onTap: _changePicture,
                 child: CircleAvatar(
                   radius: 40,
-                  backgroundImage:
-                      AssetImage(_imageUrl ?? 'assets/images/default_baby.jpg'),
                   backgroundColor: Colors.blue[50],
+                  backgroundImage: _getProfileImage(),
                   child: Align(
                     alignment: Alignment.bottomRight,
                     child: CircleAvatar(
