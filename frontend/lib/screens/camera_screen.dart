@@ -93,11 +93,30 @@ class _CameraScreenState extends State<CameraScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('Error: \\${snapshot.error}'));
+            return Center(child: Text('Error: \${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(child: Text('No babies found.'));
           }
           final babies = snapshot.data!;
+          final List<Map<String, dynamic>> activeCameras = [];
+          for (final baby in babies) {
+            if (baby.camera1On) {
+              activeCameras.add({
+                'name': baby.name,
+                'type': 'Static',
+                'profilePicture':
+                    baby.profilePicture ?? 'assets/images/default_baby.jpg',
+              });
+            }
+            if (baby.camera2On) {
+              activeCameras.add({
+                'name': baby.name,
+                'type': 'Head',
+                'profilePicture':
+                    baby.profilePicture ?? 'assets/images/default_baby.jpg',
+              });
+            }
+          }
           return Column(
             children: [
               const SizedBox(height: 16),
@@ -168,25 +187,39 @@ class _CameraScreenState extends State<CameraScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 12.0),
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 8,
-                            offset: Offset(0, 2),
+                    if (activeCameras.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 12.0),
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: SizedBox(
+                          height: 250,
+                          child:
+                              _buildCameraPreviewPagerFromList(activeCameras),
+                        ),
+                      ),
+                    if (activeCameras.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 32.0, bottom: 16.0),
+                        child: Text(
+                          'No active cameras',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
                           ),
-                        ],
+                        ),
                       ),
-                      child: SizedBox(
-                        height: 250,
-                        child: _buildCameraPreviewPager(babies),
-                      ),
-                    ),
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -198,38 +231,9 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  Widget _buildCameraPreviewPager(List<BabyProfile> babies) {
-    final List<Map<String, dynamic>> activeCameras = [];
-    for (final baby in babies) {
-      if (baby.camera1On) {
-        activeCameras.add({
-          'name': baby.name,
-          'type': 'Static',
-          'profilePicture':
-              baby.profilePicture ?? 'assets/images/default_baby.jpg',
-        });
-      }
-      if (baby.camera2On) {
-        activeCameras.add({
-          'name': baby.name,
-          'type': 'Head',
-          'profilePicture':
-              baby.profilePicture ?? 'assets/images/default_baby.jpg',
-        });
-      }
-    }
-    if (activeCameras.isEmpty) {
-      return Center(
-        child: Text(
-          'No active cameras',
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      );
-    }
+  // Helper to build pager from a given list
+  Widget _buildCameraPreviewPagerFromList(
+      List<Map<String, dynamic>> activeCameras) {
     return PageView.builder(
       itemCount: activeCameras.length,
       controller: PageController(viewportFraction: 0.8),
