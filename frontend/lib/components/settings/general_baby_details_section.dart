@@ -31,7 +31,7 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
     _weightController = TextEditingController();
     _heightController = TextEditingController();
     _customMedicalConditionController = TextEditingController();
-    _imageUrl = widget.baby.imageUrl;
+    _imageUrl = widget.baby.profilePicture;
   }
 
   @override

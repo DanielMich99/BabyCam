@@ -51,7 +51,8 @@ class BabyProfilesList extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 40,
-                      backgroundImage: AssetImage(baby.imageUrl),
+                      backgroundImage: AssetImage(baby.profilePicture ??
+                          'assets/images/default_baby.jpg'),
                       backgroundColor: Colors.white,
                     ),
                     const SizedBox(height: 16),

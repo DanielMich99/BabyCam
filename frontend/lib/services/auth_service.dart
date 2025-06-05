@@ -14,9 +14,9 @@ class AuthService {
     } else if (Platform.isAndroid) {
       return 'http://10.0.2.2:8000/auth';
     } else if (Platform.isIOS) {
-      return 'http://127.0.0.1:8000/auth';
+      return 'http://10.0.2.2:8000/auth';
     } else if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-      return 'http://localhost:8000/auth';
+      return 'http://10.0.2.2:8000/auth';
     } else {
       throw UnsupportedError('Unsupported platform');
     }

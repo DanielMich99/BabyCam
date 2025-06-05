@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class ChildCameraCube extends StatefulWidget {
   final String childName;
-  final String? imageUrl;
+  final String? profilePicture;
   final bool isHeadCameraActive;
   final bool isStaticCameraActive;
   final VoidCallback onHeadCameraTap;
@@ -11,7 +11,7 @@ class ChildCameraCube extends StatefulWidget {
   const ChildCameraCube({
     Key? key,
     required this.childName,
-    this.imageUrl,
+    this.profilePicture,
     this.isHeadCameraActive = false,
     this.isStaticCameraActive = false,
     required this.onHeadCameraTap,
@@ -37,9 +37,9 @@ class _ChildCameraCubeState extends State<ChildCameraCube> {
             // Child's image or placeholder
             CircleAvatar(
               radius: 40,
-              backgroundImage:
-                  widget.imageUrl != null ? AssetImage(widget.imageUrl!) : null,
-              child: widget.imageUrl == null
+              backgroundImage: AssetImage(
+                  widget.profilePicture ?? 'assets/images/default_baby.jpg'),
+              child: widget.profilePicture == null
                   ? const Icon(Icons.person, size: 40, color: Colors.grey)
                   : null,
             ),

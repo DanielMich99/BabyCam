@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../models/baby_profile.dart';
 import '../components/camera/child_camera_cube.dart';
+import '../services/auth_state.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({Key? key}) : super(key: key);
@@ -9,30 +13,37 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> {
-  // Placeholder data - replace with actual data from your backend
-  final List<Map<String, dynamic>> _children = [
-    {
-      'name': 'Baby 1',
-      'imageUrl': 'assets/images/default_baby.jpg',
-      'isHeadCameraActive': false,
-      'isStaticCameraActive': false,
-    },
-    {
-      'name': 'Baby 2',
-      'imageUrl': 'assets/images/default_baby.jpg',
-      'isHeadCameraActive': false,
-      'isStaticCameraActive': false,
-    },
-    // Add more children as needed
-  ];
-
+  late Future<List<BabyProfile>> _babiesFuture;
   bool _detectionSystemActive = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _babiesFuture = fetchBabies();
+  }
+
+  Future<List<BabyProfile>> fetchBabies() async {
+    final token = await AuthState.getAuthToken();
+    if (token == null) throw Exception('Not authenticated');
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:8000/baby_profiles/my_profiles'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((json) => BabyProfile.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load babies');
+    }
+  }
 
   void _toggleDetectionSystem() {
     setState(() {
       _detectionSystemActive = !_detectionSystemActive;
     });
-    // TODO: Implement detection system logic
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(_detectionSystemActive
@@ -42,22 +53,21 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  void _toggleHeadCamera(int index) {
+  void _toggleHeadCamera(List<BabyProfile> babies, int index) {
     setState(() {
-      _children[index]['isHeadCameraActive'] =
-          !_children[index]['isHeadCameraActive'];
+      babies[index] =
+          babies[index].copyWith(camera2On: !(babies[index].camera2On));
     });
   }
 
-  void _toggleStaticCamera(int index) {
+  void _toggleStaticCamera(List<BabyProfile> babies, int index) {
     setState(() {
-      _children[index]['isStaticCameraActive'] =
-          !_children[index]['isStaticCameraActive'];
+      babies[index] =
+          babies[index].copyWith(camera1On: !(babies[index].camera1On));
     });
   }
 
   void _navigateToAllCameras() {
-    // TODO: Implement navigation to all cameras view
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('All cameras view not implemented yet')),
     );
@@ -76,89 +86,110 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Detection System button
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton.icon(
-              onPressed: _toggleDetectionSystem,
-              icon: Icon(
-                _detectionSystemActive
-                    ? Icons.security
-                    : Icons.security_outlined,
-                color: _detectionSystemActive ? Colors.green : Colors.grey,
-              ),
-              label: Text(
-                _detectionSystemActive
-                    ? 'Detection System Active'
-                    : 'Activate Detection System',
-                style: TextStyle(
-                  color: _detectionSystemActive ? Colors.green : Colors.grey,
+      body: FutureBuilder<List<BabyProfile>>(
+        future: _babiesFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: \\${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No babies found.'));
+          }
+          final babies = snapshot.data!;
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ElevatedButton.icon(
+                  onPressed: _toggleDetectionSystem,
+                  icon: Icon(
+                    _detectionSystemActive
+                        ? Icons.security
+                        : Icons.security_outlined,
+                    color: _detectionSystemActive ? Colors.green : Colors.grey,
+                  ),
+                  label: Text(
+                    _detectionSystemActive
+                        ? 'Detection System Active'
+                        : 'Activate Detection System',
+                    style: TextStyle(
+                      color:
+                          _detectionSystemActive ? Colors.green : Colors.grey,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    backgroundColor: _detectionSystemActive
+                        ? Colors.green.withOpacity(0.1)
+                        : null,
+                  ),
                 ),
               ),
-              style: ElevatedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                backgroundColor: _detectionSystemActive
-                    ? Colors.green.withOpacity(0.1)
-                    : null,
+              Expanded(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: GridView.builder(
+                        padding: const EdgeInsets.all(16),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.8,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
+                        itemCount: babies.length,
+                        itemBuilder: (context, index) {
+                          final baby = babies[index];
+                          return ChildCameraCube(
+                            childName: baby.name,
+                            profilePicture: baby.profilePicture ??
+                                'assets/images/default_baby.jpg',
+                            isHeadCameraActive: baby.camera2On,
+                            isStaticCameraActive: baby.camera1On,
+                            onHeadCameraTap: () =>
+                                _toggleHeadCamera(babies, index),
+                            onStaticCameraTap: () =>
+                                _toggleStaticCamera(babies, index),
+                          );
+                        },
+                      ),
+                    ),
+                    Spacer(),
+                    SizedBox(
+                      height: 280,
+                      child: _buildCameraPreviewPager(babies),
+                    ),
+                    Spacer(flex: 2),
+                  ],
+                ),
               ),
-            ),
-          ),
-          // Children's camera cubes
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.8,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: _children.length,
-              itemBuilder: (context, index) {
-                final child = _children[index];
-                return ChildCameraCube(
-                  childName: child['name'],
-                  imageUrl: child['imageUrl'],
-                  isHeadCameraActive: child['isHeadCameraActive'],
-                  isStaticCameraActive: child['isStaticCameraActive'],
-                  onHeadCameraTap: () => _toggleHeadCamera(index),
-                  onStaticCameraTap: () => _toggleStaticCamera(index),
-                );
-              },
-            ),
-          ),
-          // Swipeable video preview section (even larger and higher)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 0.0, top: 8.0),
-            child: SizedBox(
-              height: 280,
-              child: _buildCameraPreviewPager(),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildCameraPreviewPager() {
-    // Gather all active cameras
+  Widget _buildCameraPreviewPager(List<BabyProfile> babies) {
     final List<Map<String, dynamic>> activeCameras = [];
-    for (final child in _children) {
-      if (child['isStaticCameraActive'] == true) {
+    for (final baby in babies) {
+      if (baby.camera1On) {
         activeCameras.add({
-          'name': child['name'],
+          'name': baby.name,
           'type': 'Static',
-          'imageUrl': child['imageUrl'],
+          'profilePicture':
+              baby.profilePicture ?? 'assets/images/default_baby.jpg',
         });
       }
-      if (child['isHeadCameraActive'] == true) {
+      if (baby.camera2On) {
         activeCameras.add({
-          'name': child['name'],
+          'name': baby.name,
           'type': 'Head',
-          'imageUrl': child['imageUrl'],
+          'profilePicture':
+              baby.profilePicture ?? 'assets/images/default_baby.jpg',
         });
       }
     }
@@ -191,7 +222,8 @@ class _CameraScreenState extends State<CameraScreen> {
                 children: [
                   CircleAvatar(
                     radius: 32,
-                    backgroundImage: AssetImage(cam['imageUrl']),
+                    backgroundImage: AssetImage(cam['profilePicture'] ??
+                        'assets/images/default_baby.jpg'),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -207,7 +239,6 @@ class _CameraScreenState extends State<CameraScreen> {
                   ),
                   const SizedBox(height: 16),
                   const Icon(Icons.videocam, size: 40, color: Colors.blueGrey),
-                  // Replace above with actual video feed widget if available
                 ],
               ),
             ),
