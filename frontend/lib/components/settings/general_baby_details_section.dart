@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/baby_profile.dart';
+import '../../services/baby_profile_service.dart';
 
 class GeneralBabyDetailsSection extends StatefulWidget {
   final BabyProfile baby;
@@ -22,6 +23,7 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
   String _selectedGender = 'Male';
   String _selectedMedicalCondition = 'None';
   bool _settingsExpanded = false;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -50,10 +52,47 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
     );
   }
 
-  void _saveDetails() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Saved (UI only, no backend logic)')),
-    );
+  void _saveDetails() async {
+    setState(() {
+      _isSaving = true;
+    });
+    try {
+      final updateData = {
+        'name': _nameController.text,
+        'age':
+            int.tryParse(_ageController.text.replaceAll(RegExp(r'[^0-9]'), '')),
+        'gender': _selectedGender,
+        'weight': double.tryParse(_weightController.text)?.toInt(),
+        'height': int.tryParse(_heightController.text),
+        'medical_condition': _selectedMedicalCondition == 'Other'
+            ? _customMedicalConditionController.text
+            : _selectedMedicalCondition,
+        'profile_picture': _imageUrl,
+      };
+      // Remove nulls
+      updateData.removeWhere((key, value) => value == null);
+      await BabyProfileService.updateBabyProfile(
+        id: widget.baby.id,
+        updateData: updateData,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
   }
 
   void _discardDetails() {
@@ -211,8 +250,14 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
                     child: const Text('Discard'),
                   ),
                   ElevatedButton(
-                    onPressed: _saveDetails,
-                    child: const Text('Save'),
+                    onPressed: _isSaving ? null : _saveDetails,
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Save'),
                   ),
                 ],
               ),

@@ -99,8 +99,9 @@ class _CameraScreenState extends State<CameraScreen> {
           final babies = snapshot.data!;
           return Column(
             children: [
+              const SizedBox(height: 16),
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: ElevatedButton.icon(
                   onPressed: _toggleDetectionSystem,
                   icon: Icon(
@@ -120,49 +121,72 @@ class _CameraScreenState extends State<CameraScreen> {
                   ),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
+                        horizontal: 24, vertical: 16),
                     backgroundColor: _detectionSystemActive
                         ? Colors.green.withOpacity(0.1)
                         : null,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
               Expanded(
                 child: Column(
                   children: [
                     Expanded(
-                      child: GridView.builder(
-                        padding: const EdgeInsets.all(16),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.8,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                        child: GridView.builder(
+                          padding: const EdgeInsets.only(top: 8, bottom: 8),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.8,
+                            crossAxisSpacing: 20,
+                            mainAxisSpacing: 20,
+                          ),
+                          itemCount: babies.length,
+                          itemBuilder: (context, index) {
+                            final baby = babies[index];
+                            return ChildCameraCube(
+                              childName: baby.name,
+                              profilePicture: baby.profilePicture ??
+                                  'assets/images/default_baby.jpg',
+                              isHeadCameraActive: baby.camera2On,
+                              isStaticCameraActive: baby.camera1On,
+                              onHeadCameraTap: () =>
+                                  _toggleHeadCamera(babies, index),
+                              onStaticCameraTap: () =>
+                                  _toggleStaticCamera(babies, index),
+                            );
+                          },
                         ),
-                        itemCount: babies.length,
-                        itemBuilder: (context, index) {
-                          final baby = babies[index];
-                          return ChildCameraCube(
-                            childName: baby.name,
-                            profilePicture: baby.profilePicture ??
-                                'assets/images/default_baby.jpg',
-                            isHeadCameraActive: baby.camera2On,
-                            isStaticCameraActive: baby.camera1On,
-                            onHeadCameraTap: () =>
-                                _toggleHeadCamera(babies, index),
-                            onStaticCameraTap: () =>
-                                _toggleStaticCamera(babies, index),
-                          );
-                        },
                       ),
                     ),
-                    Spacer(),
-                    SizedBox(
-                      height: 280,
-                      child: _buildCameraPreviewPager(babies),
+                    const SizedBox(height: 8),
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 12.0),
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: SizedBox(
+                        height: 250,
+                        child: _buildCameraPreviewPager(babies),
+                      ),
                     ),
-                    Spacer(flex: 2),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -197,7 +221,11 @@ class _CameraScreenState extends State<CameraScreen> {
       return Center(
         child: Text(
           'No active cameras',
-          style: TextStyle(color: Colors.grey[600], fontSize: 16),
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       );
     }
@@ -207,7 +235,7 @@ class _CameraScreenState extends State<CameraScreen> {
       itemBuilder: (context, index) {
         final cam = activeCameras[index];
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
           child: Card(
             elevation: 4,
             shape:
@@ -215,7 +243,7 @@ class _CameraScreenState extends State<CameraScreen> {
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                color: Colors.black12,
+                color: Colors.blueGrey[50],
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
