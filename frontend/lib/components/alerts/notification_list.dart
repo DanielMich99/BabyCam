@@ -27,14 +27,14 @@ class NotificationList extends StatelessWidget {
               color: Colors.red,
             ),
             title: Text(
-              notification.message,
+              notification.className,
               style: const TextStyle(fontSize: 14),
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '${notification.time.hour}:${notification.time.minute.toString().padLeft(2, '0')}:${notification.time.second.toString().padLeft(2, '0')}',
+                  '${notification.timestamp.hour}:${notification.timestamp.minute.toString().padLeft(2, '0')}:${notification.timestamp.second.toString().padLeft(2, '0')}',
                   style: const TextStyle(
                     color: Colors.grey,
                     fontSize: 12,
@@ -43,7 +43,7 @@ class NotificationList extends StatelessWidget {
                 const SizedBox(width: 8),
                 Icon(
                   Icons.check_circle,
-                  color: notification.isRead ? Colors.green : Colors.grey,
+                  color: notification.isHandled ? Colors.green : Colors.grey,
                 ),
               ],
             ),

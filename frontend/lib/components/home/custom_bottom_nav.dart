@@ -4,6 +4,7 @@ import '../../screens/alerts_screen.dart';
 import '../../screens/babies_screen.dart';
 import '../../screens/settings_screen.dart';
 import '../../models/notification_item.dart';
+import '../../services/detection_service.dart';
 
 class CustomBottomNav extends StatelessWidget {
   final int selectedIndex;
@@ -31,7 +32,9 @@ class CustomBottomNav extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => AlertsScreen(notifications: notifications),
+            builder: (context) => AlertsScreen(
+              detectionService: DetectionService(),
+            ),
           ),
         );
         break;
