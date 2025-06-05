@@ -1,78 +1,72 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/baby_profile.dart';
 import '../components/home/baby_profiles_list.dart';
 import '../screens/baby_settings_screen.dart';
+import '../services/auth_state.dart';
+import 'package:http/http.dart' as http;
+import '../services/baby_profile_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import '../components/home/add_baby_dialog.dart';
 
 class BabiesScreen extends StatefulWidget {
-  final List<BabyProfile> babies;
-
-  const BabiesScreen({Key? key, required this.babies}) : super(key: key);
+  const BabiesScreen({Key? key}) : super(key: key);
 
   @override
   State<BabiesScreen> createState() => _BabiesScreenState();
 }
 
 class _BabiesScreenState extends State<BabiesScreen> {
-  late List<BabyProfile> _babies;
+  late Future<List<BabyProfile>> _babiesFuture;
 
   @override
   void initState() {
     super.initState();
-    _babies = List.from(widget.babies);
+    _babiesFuture = fetchBabies();
   }
 
-  void _handleBabySelected(int index) {
+  Future<List<BabyProfile>> fetchBabies() async {
+    final token = await AuthState.getAuthToken();
+    if (token == null) throw Exception('Not authenticated');
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:8000/baby_profiles/my_profiles'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((json) => BabyProfile.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load babies');
+    }
+  }
+
+  void _handleBabySelected(int index, List<BabyProfile> babies,
+      void Function(List<BabyProfile>) setBabies) {
     setState(() {
-      for (var i = 0; i < _babies.length; i++) {
-        _babies[i] = _babies[i].copyWith(isSelected: i == index);
+      for (var i = 0; i < babies.length; i++) {
+        babies[i] = babies[i].copyWith(isSelected: i == index);
       }
+      setBabies(babies);
     });
   }
 
-  void _addNewBaby() {
-    showDialog(
+  void _addNewBaby() async {
+    final result = await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add New Baby'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: const InputDecoration(
-                labelText: 'Baby Name',
-                hintText: 'Enter baby name',
-              ),
-              onSubmitted: (value) {
-                if (value.isNotEmpty) {
-                  setState(() {
-                    _babies.add(
-                      BabyProfile(
-                        name: value,
-                        imageUrl: 'assets/images/default_baby.jpg',
-                      ),
-                    );
-                  });
-                  Navigator.pop(context);
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              // Handle adding new baby
-              Navigator.pop(context);
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
+      builder: (context) => const AddBabyDialog(),
     );
+    if (result == true) {
+      setState(() {
+        _babiesFuture = fetchBabies();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Baby added successfully!')),
+      );
+    }
   }
 
   @override
@@ -82,55 +76,79 @@ class _BabiesScreenState extends State<BabiesScreen> {
         title: const Text('Manage Babies'),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: BabyProfilesList(
-                babies: _babies,
-                onBabySelected: _handleBabySelected,
-                onOptionSelected: (index, option) {
-                  if (option == 'view') {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(_babies[index].name),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircleAvatar(
-                              radius: 50,
-                              backgroundImage:
-                                  AssetImage(_babies[index].imageUrl),
+        child: FutureBuilder<List<BabyProfile>>(
+          future: _babiesFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error: \\${snapshot.error}'));
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text('No babies found.'));
+            }
+            final babies = snapshot.data!;
+            return Column(
+              children: [
+                Expanded(
+                  child: BabyProfilesList(
+                    babies: babies,
+                    onBabySelected: (index) =>
+                        _handleBabySelected(index, babies, (b) {}),
+                    onOptionSelected: (index, option) {
+                      if (option == 'view') {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text(babies[index].name),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircleAvatar(
+                                  radius: 50,
+                                  backgroundImage: AssetImage(
+                                      babies[index].profilePicture ??
+                                          'assets/images/default_baby.jpg'),
+                                ),
+                                const SizedBox(height: 16),
+                                Text('Name: \\${babies[index].name}'),
+                              ],
                             ),
-                            const SizedBox(height: 16),
-                            Text('Name: ${_babies[index].name}'),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Close'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Close'),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    );
-                  } else if (option == 'settings') {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            BabySettingsScreen(baby: _babies[index]),
-                      ),
-                    );
-                  } else if (option == 'remove') {
-                    setState(() {
-                      _babies.removeAt(index);
-                    });
-                  }
-                },
-              ),
-            ),
-          ],
+                        );
+                      } else if (option == 'settings') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                BabySettingsScreen(baby: babies[index]),
+                          ),
+                        ).then((result) {
+                          if (result == true) {
+                            setState(() {
+                              _babiesFuture = fetchBabies();
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content:
+                                      Text('Profile updated successfully!')),
+                            );
+                          }
+                        });
+                      } else if (option == 'remove') {
+                        // Optionally implement remove
+                      }
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
