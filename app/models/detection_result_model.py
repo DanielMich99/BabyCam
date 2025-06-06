@@ -13,6 +13,7 @@ class DetectionResult(Base):
     confidence = Column(Float, nullable=False)
     camera_type = Column(String, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
+    image_path = Column(String, nullable=True)
 
     baby_profile = relationship("BabyProfile", back_populates="detection_results")
     class_ = relationship("ClassObject")  # assuming class_model.py defines ClassObject
