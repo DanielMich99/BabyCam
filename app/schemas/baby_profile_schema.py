@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict
 
 class BabyProfileBase(BaseModel):
-    user_id: int
+    user_id: Optional[int] = None
     name: str
     age: Optional[int] = None
     gender: Optional[str] = None

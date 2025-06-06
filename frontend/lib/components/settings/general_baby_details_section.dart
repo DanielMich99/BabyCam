@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/baby_profile.dart';
+import '../../services/baby_profile_service.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class GeneralBabyDetailsSection extends StatefulWidget {
   final BabyProfile baby;
@@ -22,6 +26,8 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
   String _selectedGender = 'Male';
   String _selectedMedicalCondition = 'None';
   bool _settingsExpanded = false;
+  bool _isSaving = false;
+  File? _pickedImageFile;
 
   @override
   void initState() {
@@ -31,7 +37,7 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
     _weightController = TextEditingController();
     _heightController = TextEditingController();
     _customMedicalConditionController = TextEditingController();
-    _imageUrl = widget.baby.imageUrl;
+    _imageUrl = widget.baby.profilePicture;
   }
 
   @override
@@ -44,16 +50,63 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
     super.dispose();
   }
 
-  void _changePicture() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Change picture not implemented.')),
-    );
+  void _changePicture() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _pickedImageFile = File(pickedFile.path);
+        _imageUrl = null; // Clear asset image if new image picked
+      });
+    }
   }
 
-  void _saveDetails() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Saved (UI only, no backend logic)')),
-    );
+  void _saveDetails() async {
+    setState(() {
+      _isSaving = true;
+    });
+    try {
+      String? base64Image;
+      if (_pickedImageFile != null) {
+        final bytes = await _pickedImageFile!.readAsBytes();
+        base64Image = base64Encode(bytes);
+      }
+      final updateData = {
+        'name': _nameController.text,
+        'age':
+            int.tryParse(_ageController.text.replaceAll(RegExp(r'[^0-9]'), '')),
+        'gender': _selectedGender,
+        'weight': double.tryParse(_weightController.text)?.toInt(),
+        'height': int.tryParse(_heightController.text),
+        'medical_condition': _selectedMedicalCondition == 'Other'
+            ? _customMedicalConditionController.text
+            : _selectedMedicalCondition,
+        if (base64Image != null) 'profile_picture': base64Image,
+        if (_imageUrl != null && base64Image == null)
+          'profile_picture': _imageUrl,
+      };
+      // Remove nulls
+      updateData.removeWhere((key, value) => value == null);
+      await BabyProfileService.updateBabyProfile(
+        id: widget.baby.id,
+        updateData: updateData,
+      );
+      if (mounted) {
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
   }
 
   void _discardDetails() {
@@ -61,6 +114,29 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
       const SnackBar(
           content: Text('Changes discarded (UI only, no backend logic)')),
     );
+  }
+
+  ImageProvider? _getProfileImage() {
+    if (_pickedImageFile != null) {
+      return FileImage(_pickedImageFile!);
+    }
+    if (_imageUrl != null) {
+      // Heuristically check if it's base64 (starts with /9j/ or data:image)
+      if (_imageUrl!.startsWith('/9j/') ||
+          _imageUrl!.startsWith('iVBOR') ||
+          _imageUrl!.startsWith('data:image')) {
+        try {
+          final base64Str = _imageUrl!.contains(',')
+              ? _imageUrl!.split(',').last
+              : _imageUrl!;
+          return MemoryImage(base64Decode(base64Str));
+        } catch (_) {}
+      } else {
+        // Otherwise, treat as asset path
+        return AssetImage(_imageUrl!);
+      }
+    }
+    return const AssetImage('assets/images/default_baby.jpg');
   }
 
   @override
@@ -98,9 +174,8 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
                 onTap: _changePicture,
                 child: CircleAvatar(
                   radius: 40,
-                  backgroundImage:
-                      AssetImage(_imageUrl ?? 'assets/images/default_baby.jpg'),
                   backgroundColor: Colors.blue[50],
+                  backgroundImage: _getProfileImage(),
                   child: Align(
                     alignment: Alignment.bottomRight,
                     child: CircleAvatar(
@@ -211,8 +286,14 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
                     child: const Text('Discard'),
                   ),
                   ElevatedButton(
-                    onPressed: _saveDetails,
-                    child: const Text('Save'),
+                    onPressed: _isSaving ? null : _saveDetails,
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Save'),
                   ),
                 ],
               ),

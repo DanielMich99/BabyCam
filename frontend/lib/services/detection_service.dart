@@ -1,0 +1,76 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../models/notification_item.dart';
+import '../config/app_config.dart';
+import 'auth_state.dart';
+
+class DetectionService {
+  Future<String?> _getAuthToken() async {
+    return await AuthState.getAuthToken();
+  }
+
+  Future<List<NotificationItem>> getMyDetectionResults() async {
+    final token = await _getAuthToken();
+    if (token == null) throw Exception('Not authenticated');
+
+    final response = await http.get(
+      Uri.parse(AppConfig.getUrl(AppConfig.detectionResultsEndpoint + '/my')),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((json) => NotificationItem.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load detection results');
+    }
+  }
+
+  Future<void> deleteDetectionResult(int id) async {
+    final token = await _getAuthToken();
+    if (token == null) throw Exception('Not authenticated');
+
+    final response = await http.delete(
+      Uri.parse(AppConfig.getUrl('${AppConfig.detectionResultsEndpoint}/$id')),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to delete detection result');
+    }
+  }
+
+  Future<List<NotificationItem>> getFilteredDetectionResults({
+    required int babyProfileId,
+    required String cameraType,
+  }) async {
+    final token = await _getAuthToken();
+    if (token == null) throw Exception('Not authenticated');
+
+    final response = await http.get(
+      Uri.parse(
+              AppConfig.getUrl(AppConfig.detectionResultsEndpoint + '/filter'))
+          .replace(queryParameters: {
+        'baby_profile_id': babyProfileId.toString(),
+        'camera_type': cameraType,
+      }),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((json) => NotificationItem.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load filtered detection results');
+    }
+  }
+}

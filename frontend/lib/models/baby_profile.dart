@@ -1,27 +1,77 @@
 class BabyProfile {
+  final int id;
   final String name;
-  final String imageUrl;
+  final int? age;
+  final String? gender;
+  final int? weight;
+  final int? height;
+  final String? medicalCondition;
+  final String? profilePicture;
+  final String? headCameraIp;
+  final String? staticCameraIp;
+
+  // UI fields (optional, for selection/camera toggles)
   final bool isSelected;
   final bool camera1On;
   final bool camera2On;
 
   BabyProfile({
+    required this.id,
     required this.name,
-    required this.imageUrl,
+    this.age,
+    this.gender,
+    this.weight,
+    this.height,
+    this.medicalCondition,
+    this.profilePicture,
+    this.headCameraIp,
+    this.staticCameraIp,
     this.isSelected = false,
     this.camera1On = false,
     this.camera2On = false,
   });
 
-  BabyProfile copyWith(
-      {String? name,
-      String? imageUrl,
-      bool? isSelected,
-      bool? camera1On,
-      bool? camera2On}) {
+  factory BabyProfile.fromJson(Map<String, dynamic> json) {
     return BabyProfile(
+      id: json['id'],
+      name: json['name'],
+      age: json['age'],
+      gender: json['gender'],
+      weight: json['weight'],
+      height: json['height'],
+      medicalCondition: json['medical_condition'],
+      profilePicture: json['profile_picture'],
+      headCameraIp: json['head_camera_ip'],
+      staticCameraIp: json['static_camera_ip'],
+    );
+  }
+
+  BabyProfile copyWith({
+    int? id,
+    String? name,
+    int? age,
+    String? gender,
+    int? weight,
+    int? height,
+    String? medicalCondition,
+    String? profilePicture,
+    String? headCameraIp,
+    String? staticCameraIp,
+    bool? isSelected,
+    bool? camera1On,
+    bool? camera2On,
+  }) {
+    return BabyProfile(
+      id: id ?? this.id,
       name: name ?? this.name,
-      imageUrl: imageUrl ?? this.imageUrl,
+      age: age ?? this.age,
+      gender: gender ?? this.gender,
+      weight: weight ?? this.weight,
+      height: height ?? this.height,
+      medicalCondition: medicalCondition ?? this.medicalCondition,
+      profilePicture: profilePicture ?? this.profilePicture,
+      headCameraIp: headCameraIp ?? this.headCameraIp,
+      staticCameraIp: staticCameraIp ?? this.staticCameraIp,
       isSelected: isSelected ?? this.isSelected,
       camera1On: camera1On ?? this.camera1On,
       camera2On: camera2On ?? this.camera2On,
