@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.services import training_monitor_service
 from app.routes.auth_routes import router as auth_router
 from app.routes.file_routes import router as file_router
 from app.routes.user_routes import router as user_router
@@ -15,6 +16,8 @@ from app.routes.camera_connection_route import router as camera_router
 from app.routes.monitoring_routes import router as monitoring_router
 from app.routes import baby_profile_routes
 from app.routes import detection_result_routes
+from app.routes import streams_routes
+from app.routes import realtime_routes
 from database.init_db import init_db
 import sys
 import os
@@ -23,6 +26,8 @@ from fastapi.openapi.utils import get_openapi
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 app = FastAPI()
+
+training_monitor_service.start_monitoring_thread()
 
 def custom_openapi():
     if app.openapi_schema:
@@ -77,6 +82,8 @@ app.include_router(camera_router, tags=["Cameras Managment"])
 app.include_router(monitoring_router, tags=["Detection System Managment"])
 app.include_router(baby_profile_routes.router)
 app.include_router(detection_result_routes.router)
+app.include_router(streams_routes.router, prefix="/api/streaming", tags=["Streaming"])
+app.include_router(realtime_routes.router)
 
 if __name__ == "__main__":
     import uvicorn

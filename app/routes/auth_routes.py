@@ -24,3 +24,7 @@ def refresh_token(refresh_token: str):
 @router.post("/save-fcm-token")
 def set_fcm_token(token_request: FCMTokenRequest, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     return save_fcm_token(token_request.token, db, current_user)
+
+@router.post("/remove-fcm-token")
+def remove_fcm_token(token_request: FCMTokenRequest, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    return delete_fcm_token(token_request.token, db, current_user)

@@ -11,3 +11,6 @@ class LoginRequest(BaseModel):
 
 class FCMTokenRequest(BaseModel):
     token: str
+
+class FCMTokenList(BaseModel):
+    tokens: list[str]
