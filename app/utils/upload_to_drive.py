@@ -2,6 +2,9 @@ import os
 import zipfile
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
+from app.utils.google_drive_service import GoogleDriveService
+
+drive_service = GoogleDriveService()
 
 def zip_dataset(user_id: int, camera_type: str) -> str:
     base_dir = f"uploads/training_data/{user_id}/{camera_type}"
@@ -28,7 +31,7 @@ def zip_dataset(user_id: int, camera_type: str) -> str:
     print(f"[ZIP] Created {zip_path}")
     return zip_path
 
-def upload_to_drive(local_zip_path: str, baby_profile_id: int, model_type: str, drive_base_folder: str = "babycam_data"):
+'''def upload_to_drive(local_zip_path: str, baby_profile_id: int, model_type: str, drive_base_folder: str = "babycam_data"):
     gauth = GoogleAuth()
     gauth.LocalWebserverAuth()
     drive = GoogleDrive(gauth)
@@ -69,7 +72,14 @@ def upload_to_drive(local_zip_path: str, baby_profile_id: int, model_type: str, 
     })
     gfile.SetContentFile(local_zip_path)
     gfile.Upload()
-    print(f"[DRIVE] Uploaded {file_name} to Drive path: {drive_base_folder}/{baby_profile_id}/{model_type}")
+    print(f"[DRIVE] Uploaded {file_name} to Drive path: {drive_base_folder}/{baby_profile_id}/{model_type}")'''
+
+def upload_to_drive(local_zip_path: str, baby_profile_id: int, model_type: str, drive_base_folder: str = "babycam_data"):
+    root_folder_id = drive_service.get_or_create_folder(drive_base_folder)
+    profile_folder_id = drive_service.get_or_create_folder(str(baby_profile_id), root_folder_id)
+    model_folder_id = drive_service.get_or_create_folder(model_type, profile_folder_id)
+
+    drive_service.upload_file(local_zip_path, model_folder_id)
     
 # דוגמה לשימוש
 if __name__ == "__main__":

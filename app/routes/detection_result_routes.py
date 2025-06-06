@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.schemas import detection_result_schema
 from app.controllers import detection_result_controller
 from database.database import get_db
 from app.services.auth_service import get_current_user
 from app.models.user_model import User
+from fastapi.responses import FileResponse
+import os
 
 router = APIRouter(prefix="/detection_results", tags=["Detection Results"])
 
@@ -37,3 +39,21 @@ def get_detection_result(detection_id: int, current_user: User = Depends(get_cur
 @router.delete("/{detection_id}", response_model=detection_result_schema.DetectionResultOut)
 def delete_detection_result(detection_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return detection_result_controller.delete_detection_result_by_user_controller(db, detection_id, current_user.id)
+
+@router.get("/{detection_id}/image")
+def get_detection_image(
+    detection_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # נשלוף את ה-detection
+    detection = detection_result_controller.get_detection_result_by_user_controller(db, detection_id, current_user.id)
+
+    if not detection or not detection.image_path:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    file_path = os.path.join("uploads", detection.image_path)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(file_path)

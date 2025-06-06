@@ -3,7 +3,7 @@ import jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status, Depends
 from sqlalchemy.orm import Session
-from app.models.user_model import User
+from app.models.user_model import User, UserFCMToken
 from app.utils.config import config
 from app.services.user_service import create_user
 from database.database import get_db
@@ -84,6 +84,15 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     except jwt.PyJWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     
+def verify_jwt_token(token: str):
+    try:
+        payload = jwt.decode(token, config.SECRET_KEY, algorithms=[config.ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
 def update_fcm_token_by_username(db: Session, username: str, token: str):
     user = db.query(User).filter(User.username == username).first()
     if user:
@@ -91,3 +100,33 @@ def update_fcm_token_by_username(db: Session, username: str, token: str):
         db.commit()
     else:
         raise HTTPException(status_code=404, detail="User not found")
+    
+def add_fcm_token_to_user(db: Session, username: str, token: str):
+    user = db.query(User).filter(User.username == username).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # בדיקה אם הטוקן כבר קיים
+    existing_token = db.query(UserFCMToken).filter(UserFCMToken.token == token).first()
+    if existing_token:
+        return  # לא נכניס טוקן כפול
+
+    new_token = UserFCMToken(user_id=user.id, token=token)
+    db.add(new_token)
+    db.commit()
+
+def delete_fcm_token(token: str, db: Session, current_user: dict):
+    username = current_user["username"]
+    user = db.query(User).filter(User.username == username).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    token_obj = db.query(UserFCMToken).filter_by(user_id=user.id, token=token).first()
+    if token_obj:
+        db.delete(token_obj)
+        db.commit()
+        return {"message": "FCM token removed successfully"}
+    else:
+        raise HTTPException(status_code=404, detail="Token not found")
+    

@@ -5,6 +5,7 @@ from app.utils.dataset_utils import update_dataset_yaml, rebuild_training_folder
 from app.utils.file_utils import delete_class_data, add_class_data, append_to_class_data
 from app.db_utils.class_utils import update_db_classes, insert_new_classes, delete_db_classes, sync_model_indexes_to_classes
 from app.utils.upload_to_drive import zip_dataset, upload_to_drive
+from app.services import training_monitor_service
 import requests
 import time
 from pydrive.auth import GoogleAuth
@@ -13,7 +14,7 @@ from pydrive.drive import GoogleDrive
 def should_train_or_finetune(request) -> str:
     # אימון מלא אם יש קלאסים חדשים או שנמחקו
     if request.new_classes or request.deleted_classes:
-        return "retrain"
+        return "finetune"
 
     # Fine-tune רק אם יש תמונות/labels בקלאסים מעודכנים
     has_training_files = any(
@@ -134,17 +135,24 @@ def process_model_update(request: ModelUpdateRequest, db):
     train_result = train_model_remotely(request.baby_profile_id, request.model_type.replace("_model", ""), strategy)
 
     # המתן לקובץ .pt ויבא אותו למערכת הקבצים
-    if strategy != "none":
-        try:
-            wait_for_model_file(request.baby_profile_id, request.model_type.replace("_model", ""))
-        except TimeoutError as e:
-            return {
-                "message": "Model update completed, but model file download timed out.",
-                "training_strategy": strategy,
-                "training_result": train_result,
-                "error": str(e)
-            }
+    # if strategy != "none":
+    #     try:
+    #         wait_for_model_file(request.baby_profile_id, request.model_type.replace("_model", ""))
+    #     except TimeoutError as e:
+    #         return {
+    #             "message": "Model update completed, but model file download timed out.",
+    #             "training_strategy": strategy,
+    #             "training_result": train_result,
+    #             "error": str(e)
+    #         }
     
+    if strategy != "none":
+        training_monitor_service.register_pending_training(
+            request.baby_profile_id,
+            request.baby_profile_id,
+            request.model_type.replace("_model", "")
+        )
+
     return {
     "message": "Model update completed.",
     "training_strategy": strategy,
