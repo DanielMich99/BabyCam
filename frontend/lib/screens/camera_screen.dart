@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../models/baby_profile.dart';
 import '../components/camera/child_camera_cube.dart';
 import '../services/auth_state.dart';
+import '../services/camera_service.dart';
 import '../components/home/add_baby_dialog.dart';
 
 class CameraScreen extends StatefulWidget {
@@ -54,24 +55,106 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  void _toggleHeadCamera(List<BabyProfile> babies, int index) {
+  Future<void> _handleCameraConnection(
+      List<BabyProfile> babies, int index, String cameraType) async {
+    final baby = babies[index];
+    final isHeadCamera = cameraType == 'head_camera';
+
+    // If camera is already connected, disconnect it
+    if ((isHeadCamera && baby.camera2On) || (!isHeadCamera && baby.camera1On)) {
+      try {
+        await CameraService.disconnectCamera(baby.id, cameraType);
+        setState(() {
+          babies[index] = baby.copyWith(
+            camera1On: isHeadCamera ? baby.camera1On : false,
+            camera2On: isHeadCamera ? false : baby.camera2On,
+          );
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Camera disconnected successfully')),
+        );
+      } catch (e) {
+        _showErrorDialog('Failed to disconnect camera', e.toString());
+      }
+      return;
+    }
+
+    // Set connecting state
     setState(() {
-      babies[index] =
-          babies[index].copyWith(camera2On: !(babies[index].camera2On));
+      babies[index] = baby.copyWith(
+        isConnectingCamera1: !isHeadCamera,
+        isConnectingCamera2: isHeadCamera,
+      );
     });
+
+    try {
+      final success = await CameraService.connectCamera(baby.id, cameraType);
+      if (success) {
+        setState(() {
+          babies[index] = baby.copyWith(
+            camera1On: !isHeadCamera,
+            camera2On: isHeadCamera,
+            isConnectingCamera1: false,
+            isConnectingCamera2: false,
+          );
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Camera connected successfully')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        babies[index] = baby.copyWith(
+          isConnectingCamera1: false,
+          isConnectingCamera2: false,
+        );
+      });
+      _showErrorDialog('Failed to connect camera', e.toString());
+    }
   }
 
-  void _toggleStaticCamera(List<BabyProfile> babies, int index) {
-    setState(() {
-      babies[index] =
-          babies[index].copyWith(camera1On: !(babies[index].camera1On));
-    });
-  }
-
-  void _navigateToAllCameras() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('All cameras view not implemented yet')),
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                _babiesFuture = fetchBabies();
+              });
+            },
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
     );
+  }
+
+  Future<void> _resetAllCameras() async {
+    try {
+      final userId = await AuthState.getUserId();
+      if (userId == null) throw Exception('User not authenticated');
+
+      final updatedCount = await CameraService.resetUserCameras(userId);
+      setState(() {
+        _babiesFuture = fetchBabies();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text('Successfully reset $updatedCount camera connections')),
+      );
+    } catch (e) {
+      _showErrorDialog('Failed to reset cameras', e.toString());
+    }
   }
 
   @override
@@ -85,6 +168,11 @@ class _CameraScreenState extends State<CameraScreen> {
             onPressed: _navigateToAllCameras,
             tooltip: 'View All Cameras',
           ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _resetAllCameras,
+            tooltip: 'Reset All Cameras',
+          ),
         ],
       ),
       body: FutureBuilder<List<BabyProfile>>(
@@ -93,7 +181,7 @@ class _CameraScreenState extends State<CameraScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('Error: \${snapshot.error}'));
+            return Center(child: Text('Error: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(child: Text('No babies found.'));
           }
@@ -177,10 +265,13 @@ class _CameraScreenState extends State<CameraScreen> {
                                   'assets/images/default_baby.jpg',
                               isHeadCameraActive: baby.camera2On,
                               isStaticCameraActive: baby.camera1On,
-                              onHeadCameraTap: () =>
-                                  _toggleHeadCamera(babies, index),
-                              onStaticCameraTap: () =>
-                                  _toggleStaticCamera(babies, index),
+                              isHeadCameraConnecting: baby.isConnectingCamera2,
+                              isStaticCameraConnecting:
+                                  baby.isConnectingCamera1,
+                              onHeadCameraTap: () => _handleCameraConnection(
+                                  babies, index, 'head_camera'),
+                              onStaticCameraTap: () => _handleCameraConnection(
+                                  babies, index, 'static_camera'),
                             );
                           },
                         ),
@@ -278,6 +369,12 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _navigateToAllCameras() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('All cameras view not implemented yet')),
     );
   }
 }

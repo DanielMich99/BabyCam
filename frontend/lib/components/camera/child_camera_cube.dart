@@ -1,126 +1,137 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 
-class ChildCameraCube extends StatefulWidget {
+class ChildCameraCube extends StatelessWidget {
   final String childName;
-  final String? profilePicture;
+  final String profilePicture;
   final bool isHeadCameraActive;
   final bool isStaticCameraActive;
+  final bool isHeadCameraConnecting;
+  final bool isStaticCameraConnecting;
   final VoidCallback onHeadCameraTap;
   final VoidCallback onStaticCameraTap;
 
   const ChildCameraCube({
     Key? key,
     required this.childName,
-    this.profilePicture,
-    this.isHeadCameraActive = false,
-    this.isStaticCameraActive = false,
+    required this.profilePicture,
+    required this.isHeadCameraActive,
+    required this.isStaticCameraActive,
+    required this.isHeadCameraConnecting,
+    required this.isStaticCameraConnecting,
     required this.onHeadCameraTap,
     required this.onStaticCameraTap,
   }) : super(key: key);
 
   @override
-  State<ChildCameraCube> createState() => _ChildCameraCubeState();
-}
-
-class _ChildCameraCubeState extends State<ChildCameraCube> {
-  ImageProvider _getProfileImage(String? profilePicture) {
-    if (profilePicture != null) {
-      if (profilePicture.startsWith('/9j/') ||
-          profilePicture.startsWith('iVBOR') ||
-          profilePicture.startsWith('data:image')) {
-        try {
-          final base64Str = profilePicture.contains(',')
-              ? profilePicture.split(',').last
-              : profilePicture;
-          return MemoryImage(base64Decode(base64Str));
-        } catch (_) {}
-      } else {
-        return AssetImage(profilePicture);
-      }
-    }
-    return const AssetImage('assets/images/default_baby.jpg');
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        width: 160,
-        height: 200,
-        padding: const EdgeInsets.all(12),
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      margin: const EdgeInsets.all(8),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            // Child's image or placeholder
+            // Baby Avatar
             CircleAvatar(
-              radius: 40,
-              backgroundImage: _getProfileImage(widget.profilePicture),
-              child: widget.profilePicture == null
-                  ? const Icon(Icons.person, size: 40, color: Colors.grey)
-                  : null,
+              radius: 36,
+              backgroundImage: AssetImage(profilePicture),
             ),
-            const SizedBox(height: 8),
-            // Child's name
+            const SizedBox(height: 10),
+            // Baby Name
             Text(
-              widget.childName,
+              childName,
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
-            // Camera icons row with labels
+            const SizedBox(height: 10),
+            // Camera Buttons
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                // Static camera icon (left)
-                Column(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.videocam,
-                        size: 32,
-                        color: widget.isStaticCameraActive
-                            ? Colors.yellow
-                            : Colors.grey,
-                      ),
-                      onPressed: widget.onStaticCameraTap,
-                      tooltip: 'Static Camera',
-                    ),
-                    const Text(
-                      'Static',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ],
+                _buildCameraButton(
+                  context,
+                  'Head',
+                  Icons.videocam,
+                  isHeadCameraActive,
+                  isHeadCameraConnecting,
+                  onHeadCameraTap,
                 ),
-                // Head camera icon (right)
-                Column(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.videocam,
-                        size: 32,
-                        color: widget.isHeadCameraActive
-                            ? Colors.yellow
-                            : Colors.grey,
-                      ),
-                      onPressed: widget.onHeadCameraTap,
-                      tooltip: 'Head Camera',
-                    ),
-                    const Text(
-                      'Head',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ],
+                _buildCameraButton(
+                  context,
+                  'Static',
+                  Icons.videocam_outlined,
+                  isStaticCameraActive,
+                  isStaticCameraConnecting,
+                  onStaticCameraTap,
                 ),
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCameraButton(
+    BuildContext context,
+    String label,
+    IconData icon,
+    bool isActive,
+    bool isConnecting,
+    VoidCallback onTap,
+  ) {
+    Color buttonColor;
+    if (isConnecting) {
+      buttonColor = Colors.amber;
+    } else if (isActive) {
+      buttonColor = Colors.green;
+    } else {
+      buttonColor = Colors.grey.shade400;
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Material(
+              color: buttonColor.withOpacity(0.15),
+              shape: const CircleBorder(),
+              child: IconButton(
+                icon: Icon(icon, size: 28),
+                color: buttonColor,
+                onPressed: isConnecting ? null : onTap,
+                tooltip: label,
+              ),
+            ),
+            if (isConnecting)
+              const SizedBox(
+                width: 32,
+                height: 32,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: buttonColor,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }
