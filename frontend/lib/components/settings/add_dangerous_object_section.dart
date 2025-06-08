@@ -4,7 +4,9 @@ import '../../services/user_service.dart';
 
 class AddDangerousObjectSection extends StatelessWidget {
   final String cameraType;
-  const AddDangerousObjectSection({Key? key, required this.cameraType})
+  final String? buttonText;
+  const AddDangerousObjectSection(
+      {Key? key, required this.cameraType, this.buttonText})
       : super(key: key);
 
   @override
@@ -17,12 +19,9 @@ class AddDangerousObjectSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Add Dangerous Object ($cameraType)',
-                style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 16),
             ElevatedButton.icon(
               icon: const Icon(Icons.edit),
-              label: const Text('Add/Edit Object Class'),
+              label: Text(buttonText ?? 'Add/Edit Object Class'),
               onPressed: () async {
                 final userService = UserService();
                 final babyProfile = await userService.getCurrentBabyProfile();

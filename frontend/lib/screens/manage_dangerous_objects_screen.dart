@@ -4,10 +4,19 @@ import 'dangerous_object_list_dialog.dart';
 import 'package:http/http.dart' as http;
 import '../services/auth_state.dart';
 
-class ManageDangerousObjectsScreen extends StatelessWidget {
+class ManageDangerousObjectsScreen extends StatefulWidget {
   final int babyProfileId;
   const ManageDangerousObjectsScreen({Key? key, required this.babyProfileId})
       : super(key: key);
+
+  @override
+  State<ManageDangerousObjectsScreen> createState() =>
+      _ManageDangerousObjectsScreenState();
+}
+
+class _ManageDangerousObjectsScreenState
+    extends State<ManageDangerousObjectsScreen> {
+  final List<Map<String, dynamic>> _pendingDeletions = [];
 
   Future<void> _openDangerousObjectListDialog(
       BuildContext context, String cameraType, String cameraLabel) async {
@@ -15,7 +24,7 @@ class ManageDangerousObjectsScreen extends StatelessWidget {
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (context) => DangerousObjectListDialog(
-          babyProfileId: babyProfileId,
+          babyProfileId: widget.babyProfileId,
           cameraType: cameraType,
         ),
       ),
@@ -23,41 +32,15 @@ class ManageDangerousObjectsScreen extends StatelessWidget {
     if (deletedObjects != null &&
         deletedObjects is List &&
         deletedObjects.isNotEmpty) {
-      await _deleteObjects(context, deletedObjects);
-      _showDeletedDialog(context, deletedObjects, cameraLabel);
+      setState(() {
+        _pendingDeletions.addAll(deletedObjects.map((obj) => {
+              'id': obj['id'],
+              'name': obj['name'],
+              'risk_level': obj['risk_level'],
+              'camera_label': cameraLabel,
+            }));
+      });
     }
-  }
-
-  Future<void> _deleteObjects(BuildContext context, List deletedObjects) async {
-    final token = await AuthState.getAuthToken();
-    if (token == null) return;
-    for (final obj in deletedObjects) {
-      final id = obj['id'];
-      final uri = Uri.parse('http://10.0.2.2:8000/classes/$id');
-      await http.delete(uri, headers: {'Authorization': 'Bearer $token'});
-    }
-  }
-
-  void _showDeletedDialog(
-      BuildContext context, List deletedObjects, String cameraLabel) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Deleted from $cameraLabel'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children:
-              deletedObjects.map<Widget>((obj) => Text(obj['name'])).toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -72,9 +55,13 @@ class ManageDangerousObjectsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              AddDangerousObjectSection(cameraType: 'Head Camera'),
+              AddDangerousObjectSection(
+                  cameraType: 'Head Camera',
+                  buttonText: 'Add Object Class (Head Camera)'),
               const SizedBox(height: 16),
-              AddDangerousObjectSection(cameraType: 'Static Camera'),
+              AddDangerousObjectSection(
+                  cameraType: 'Static Camera',
+                  buttonText: 'Add Object Class (Static Camera)'),
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: () => _openDangerousObjectListDialog(
@@ -86,6 +73,60 @@ class ManageDangerousObjectsScreen extends StatelessWidget {
                 onPressed: () => _openDangerousObjectListDialog(
                     context, 'static_camera', 'Static Camera'),
                 child: const Text('View Dangerous Objects (Static Camera)'),
+              ),
+              const SizedBox(height: 32),
+              if (_pendingDeletions.isNotEmpty) ...[
+                Card(
+                  color: Colors.red[50],
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Pending Deletions:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ..._pendingDeletions.map((obj) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete,
+                                      color: Colors.red[300], size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                      child: Text(
+                                          '${obj['name']} (Risk: ${obj['risk_level']}, ${obj['camera_label']})',
+                                          style:
+                                              const TextStyle(fontSize: 15))),
+                                ],
+                              ),
+                            )),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+              ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
+                ),
+                child: const Text('Update Model',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ],
           ),

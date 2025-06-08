@@ -77,6 +77,18 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
     });
   }
 
+  Color _riskColor(String risk) {
+    switch (risk) {
+      case 'high':
+        return Colors.red;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+      default:
+        return Colors.green;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -117,32 +129,83 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
               ? Center(child: Text('Error: $_error'))
               : _dangerousObjects.isEmpty
                   ? const Center(child: Text('No dangerous objects found.'))
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(20),
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
                       itemCount: _dangerousObjects.length,
-                      separatorBuilder: (context, index) => const Divider(),
                       itemBuilder: (context, index) {
                         final obj = _dangerousObjects[index];
+                        final riskColor = _riskColor(obj['risk_level']);
+                        Widget content = Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 14,
+                              height: 14,
+                              margin: const EdgeInsets.only(right: 16),
+                              decoration: BoxDecoration(
+                                color: riskColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    obj['name'],
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Risk: ${obj['risk_level']}',
+                                    style: TextStyle(
+                                      color: Colors.grey[700],
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
                         if (_deleteMode) {
-                          return CheckboxListTile(
-                            value:
-                                _selectedForDelete.contains(obj['id'] as int),
-                            onChanged: (checked) {
-                              setState(() {
-                                if (checked == true) {
-                                  _selectedForDelete.add(obj['id'] as int);
-                                } else {
-                                  _selectedForDelete.remove(obj['id'] as int);
-                                }
-                              });
-                            },
-                            title: Text(obj['name']),
-                            subtitle: Text('Risk: ${obj['risk_level']}'),
+                          return Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            child: CheckboxListTile(
+                              value:
+                                  _selectedForDelete.contains(obj['id'] as int),
+                              onChanged: (checked) {
+                                setState(() {
+                                  if (checked == true) {
+                                    _selectedForDelete.add(obj['id'] as int);
+                                  } else {
+                                    _selectedForDelete.remove(obj['id'] as int);
+                                  }
+                                });
+                              },
+                              title: content,
+                              controlAffinity: ListTileControlAffinity.leading,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                            ),
                           );
                         } else {
-                          return ListTile(
-                            title: Text(obj['name']),
-                            subtitle: Text('Risk: ${obj['risk_level']}'),
+                          return Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 16),
+                              child: content,
+                            ),
                           );
                         }
                       },
