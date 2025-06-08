@@ -14,6 +14,8 @@ class BabyProfile {
   final bool isSelected;
   final bool camera1On;
   final bool camera2On;
+  final bool isConnectingCamera1;
+  final bool isConnectingCamera2;
 
   BabyProfile({
     required this.id,
@@ -29,6 +31,8 @@ class BabyProfile {
     this.isSelected = false,
     this.camera1On = false,
     this.camera2On = false,
+    this.isConnectingCamera1 = false,
+    this.isConnectingCamera2 = false,
   });
 
   factory BabyProfile.fromJson(Map<String, dynamic> json) {
@@ -43,6 +47,10 @@ class BabyProfile {
       profilePicture: json['profile_picture'],
       headCameraIp: json['head_camera_ip'],
       staticCameraIp: json['static_camera_ip'],
+      camera1On: json['camera1_on'] ?? false,
+      camera2On: json['camera2_on'] ?? false,
+      isConnectingCamera1: false,
+      isConnectingCamera2: false,
     );
   }
 
@@ -60,6 +68,8 @@ class BabyProfile {
     bool? isSelected,
     bool? camera1On,
     bool? camera2On,
+    bool? isConnectingCamera1,
+    bool? isConnectingCamera2,
   }) {
     return BabyProfile(
       id: id ?? this.id,
@@ -75,6 +85,8 @@ class BabyProfile {
       isSelected: isSelected ?? this.isSelected,
       camera1On: camera1On ?? this.camera1On,
       camera2On: camera2On ?? this.camera2On,
+      isConnectingCamera1: isConnectingCamera1 ?? this.isConnectingCamera1,
+      isConnectingCamera2: isConnectingCamera2 ?? this.isConnectingCamera2,
     );
   }
 }
