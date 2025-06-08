@@ -8,10 +8,14 @@ import '../services/training_service.dart';
 class ClassEditScreen extends StatefulWidget {
   final String className;
   final List<ImageData> initialImages;
+  final int babyProfileId;
+  final String modelType;
 
   const ClassEditScreen({
     Key? key,
     required this.className,
+    required this.babyProfileId,
+    required this.modelType,
     this.initialImages = const [],
   }) : super(key: key);
 
@@ -23,6 +27,7 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
   List<ImageData> images = [];
   final ImagePicker _picker = ImagePicker();
   bool _isSaving = false;
+  String _riskLevel = 'medium'; // Default risk level
 
   bool get allImagesLabeled =>
       images.every((img) => img.boundingBoxes.isNotEmpty);
@@ -93,9 +98,15 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
     setState(() => _isSaving = true);
 
     try {
+      // 1. Upload files to temp
+      await TrainingService.uploadFilesToTemp(images);
+      // 2. Send metadata to model/update
       await TrainingService.uploadClassData(
         className: widget.className,
         images: images,
+        riskLevel: _riskLevel,
+        babyProfileId: widget.babyProfileId,
+        modelType: widget.modelType,
       );
 
       if (mounted) {
@@ -132,9 +143,29 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  '${widget.className} - $imageCount images (min 30, max 100)',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                child: Column(
+                  children: [
+                    Text(
+                      '${widget.className} - $imageCount images',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButton<String>(
+                      value: _riskLevel,
+                      items: const [
+                        DropdownMenuItem(value: 'low', child: Text('Low Risk')),
+                        DropdownMenuItem(
+                            value: 'medium', child: Text('Medium Risk')),
+                        DropdownMenuItem(
+                            value: 'high', child: Text('High Risk')),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _riskLevel = value);
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ),
               Row(
@@ -155,32 +186,14 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Column(
-                  children: [
-                    Text(
-                      imageCount < 30
-                          ? 'Add at least ${30 - imageCount} more images.'
-                          : imageCount > 100
-                              ? 'Remove ${imageCount - 100} images.'
-                              : '',
-                      style: TextStyle(
-                        color: imageCount < 30 || imageCount > 100
-                            ? Colors.red
-                            : Colors.green,
-                      ),
-                    ),
-                    if (imageCount >= 30 && imageCount <= 100)
-                      Text(
-                        allImagesLabeled
-                            ? 'All images labeled! Ready to save.'
-                            : '${images.where((img) => img.boundingBoxes.isEmpty).length} images need labeling.',
-                        style: TextStyle(
-                          color:
-                              allImagesLabeled ? Colors.green : Colors.orange,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                  ],
+                child: Text(
+                  allImagesLabeled
+                      ? 'All images labeled! Ready to save.'
+                      : '${images.where((img) => img.boundingBoxes.isEmpty).length} images need labeling.',
+                  style: TextStyle(
+                    color: allImagesLabeled ? Colors.green : Colors.orange,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               Expanded(
@@ -243,12 +256,7 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   ElevatedButton(
-                    onPressed: (imageCount >= 30 &&
-                            imageCount <= 100 &&
-                            allImagesLabeled &&
-                            !_isSaving)
-                        ? _save
-                        : null,
+                    onPressed: (allImagesLabeled && !_isSaving) ? _save : null,
                     child: _isSaving
                         ? const SizedBox(
                             width: 20,
