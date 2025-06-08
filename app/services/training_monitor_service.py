@@ -7,7 +7,7 @@ from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 from app.utils.config import config
 from app.utils.websocket_broadcast import broadcast_detection  # שימוש בחדש לפי המימוש שלך
-from app.utils.fcm_push import send_push_notification, send_push_notifications
+from app.utils.fcm_push import send_push_notifications
 from app.models.user_model import User, UserFCMToken
 from sqlalchemy.orm import Session
 from database.database import SessionLocal
