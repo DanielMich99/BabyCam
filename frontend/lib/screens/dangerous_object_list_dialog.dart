@@ -16,9 +16,11 @@ class DangerousObjectListDialog extends StatefulWidget {
 }
 
 class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
-  List<String> _dangerousObjects = [];
+  List<Map<String, dynamic>> _dangerousObjects = [];
+  Set<int> _selectedForDelete = {};
   bool _loading = true;
   String? _error;
+  bool _deleteMode = false;
 
   @override
   void initState() {
@@ -44,7 +46,13 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
       }
       final list = json.decode(resp.body) as List;
       setState(() {
-        _dangerousObjects = list.map((e) => e['name'] as String).toList();
+        _dangerousObjects = list
+            .map((e) => {
+                  'id': e['id'],
+                  'name': e['name'],
+                  'risk_level': e['risk_level'],
+                })
+            .toList();
         _loading = false;
       });
     } catch (e) {
@@ -53,6 +61,20 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
         _loading = false;
       });
     }
+  }
+
+  void _onDeleteSelected() {
+    final deleted = _dangerousObjects
+        .where((obj) => _selectedForDelete.contains(obj['id'] as int))
+        .toList();
+    Navigator.of(context).pop(deleted);
+  }
+
+  void _toggleDeleteMode() {
+    setState(() {
+      _deleteMode = !_deleteMode;
+      if (!_deleteMode) _selectedForDelete.clear();
+    });
   }
 
   @override
@@ -68,11 +90,31 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          if (!_deleteMode)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              tooltip: 'Delete',
+              onPressed: _dangerousObjects.isEmpty ? null : _toggleDeleteMode,
+            ),
+          if (_deleteMode) ...[
+            IconButton(
+              icon: const Icon(Icons.cancel),
+              tooltip: 'Cancel',
+              onPressed: _toggleDeleteMode,
+            ),
+            IconButton(
+              icon: const Icon(Icons.check),
+              tooltip: 'Confirm Delete',
+              onPressed: _selectedForDelete.isEmpty ? null : _onDeleteSelected,
+            ),
+          ]
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text('Error: \\$_error'))
+              ? Center(child: Text('Error: $_error'))
               : _dangerousObjects.isEmpty
                   ? const Center(child: Text('No dangerous objects found.'))
                   : ListView.separated(
@@ -80,9 +122,29 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
                       itemCount: _dangerousObjects.length,
                       separatorBuilder: (context, index) => const Divider(),
                       itemBuilder: (context, index) {
-                        return ListTile(
-                          title: Text(_dangerousObjects[index]),
-                        );
+                        final obj = _dangerousObjects[index];
+                        if (_deleteMode) {
+                          return CheckboxListTile(
+                            value:
+                                _selectedForDelete.contains(obj['id'] as int),
+                            onChanged: (checked) {
+                              setState(() {
+                                if (checked == true) {
+                                  _selectedForDelete.add(obj['id'] as int);
+                                } else {
+                                  _selectedForDelete.remove(obj['id'] as int);
+                                }
+                              });
+                            },
+                            title: Text(obj['name']),
+                            subtitle: Text('Risk: ${obj['risk_level']}'),
+                          );
+                        } else {
+                          return ListTile(
+                            title: Text(obj['name']),
+                            subtitle: Text('Risk: ${obj['risk_level']}'),
+                          );
+                        }
                       },
                     ),
     );
