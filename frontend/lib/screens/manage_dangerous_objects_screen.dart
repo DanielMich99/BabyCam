@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import '../components/settings/add_dangerous_object_section.dart';
-import 'dangerous_object_list_dialog.dart';
 import 'package:http/http.dart' as http;
 import '../services/auth_state.dart';
+import '../screens/class_edit_screen.dart';
+import '../components/settings/add_dangerous_object_section.dart';
+import 'dangerous_object_list_dialog.dart';
+import '../services/user_service.dart';
 
 class ManageDangerousObjectsScreen extends StatefulWidget {
   final int babyProfileId;
@@ -43,6 +45,119 @@ class _ManageDangerousObjectsScreenState
     }
   }
 
+  Future<void> _startAddObjectFlow(BuildContext context) async {
+    // Step 1: Select camera type
+    String? cameraType = await showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Select Camera Type'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 'Head Camera'),
+            child: const Text('Head Camera'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 'Static Camera'),
+            child: const Text('Static Camera'),
+          ),
+        ],
+      ),
+    );
+    if (cameraType == null) return;
+
+    // Step 2: Enter object name
+    String? objectName = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          title: const Text('Enter Object Name'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: 'e.g. scissors'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: const Text('Next'),
+            ),
+          ],
+        );
+      },
+    );
+    if (objectName == null || objectName.isEmpty) return;
+
+    // Step 3: Select risk level
+    String? riskLevel = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        String selected = 'medium';
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text('Select Risk Level'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                RadioListTile<String>(
+                  value: 'low',
+                  groupValue: selected,
+                  onChanged: (v) => setState(() => selected = v!),
+                  title: const Text('Low'),
+                ),
+                RadioListTile<String>(
+                  value: 'medium',
+                  groupValue: selected,
+                  onChanged: (v) => setState(() => selected = v!),
+                  title: const Text('Medium'),
+                ),
+                RadioListTile<String>(
+                  value: 'high',
+                  groupValue: selected,
+                  onChanged: (v) => setState(() => selected = v!),
+                  title: const Text('High'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, selected),
+                child: const Text('Next'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (riskLevel == null) return;
+
+    // Step 4: Go to ClassEditScreen
+    final userService = UserService();
+    final babyProfile = await userService.getCurrentBabyProfile();
+    if (!context.mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ClassEditScreen(
+          className: objectName,
+          initialImages: const [],
+          babyProfileId: babyProfile.id,
+          modelType: cameraType == 'Head Camera'
+              ? 'head_camera_model'
+              : 'static_camera_model',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,13 +170,23 @@ class _ManageDangerousObjectsScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              AddDangerousObjectSection(
-                  cameraType: 'Head Camera',
-                  buttonText: 'Add Object Class (Head Camera)'),
-              const SizedBox(height: 16),
-              AddDangerousObjectSection(
-                  cameraType: 'Static Camera',
-                  buttonText: 'Add Object Class (Static Camera)'),
+              ElevatedButton(
+                onPressed: () => _startAddObjectFlow(context),
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.blue,
+                  elevation: 0,
+                  side: const BorderSide(color: Colors.transparent),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                ),
+                child: const Text('➕ Add Object Class',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.blue)),
+              ),
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: () => _openDangerousObjectListDialog(
