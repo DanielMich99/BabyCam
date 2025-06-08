@@ -7,11 +7,13 @@ class BoundingBoxEditor extends StatefulWidget {
   final Function(ImageData) onSave;
   final bool isLastImage;
   final VoidCallback? onSaveAll;
+  final String className;
 
   const BoundingBoxEditor({
     Key? key,
     required this.image,
     required this.onSave,
+    required this.className,
     this.isLastImage = false,
     this.onSaveAll,
   }) : super(key: key);
@@ -24,7 +26,6 @@ class _BoundingBoxEditorState extends State<BoundingBoxEditor> {
   late List<BoundingBox> boundingBoxes;
   BoundingBox? currentBox;
   Offset? startPoint;
-  String currentLabel = '';
 
   @override
   void initState() {
@@ -52,7 +53,7 @@ class _BoundingBoxEditorState extends State<BoundingBoxEditor> {
           y: y,
           width: width,
           height: height,
-          label: currentLabel,
+          label: widget.className,
         );
       });
     }
@@ -81,13 +82,6 @@ class _BoundingBoxEditorState extends State<BoundingBoxEditor> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(
-            decoration: const InputDecoration(
-              labelText: 'Label',
-              hintText: 'Enter label for the bounding box',
-            ),
-            onChanged: (value) => currentLabel = value,
-          ),
           const SizedBox(height: 16),
           Container(
             width: 400,

@@ -88,6 +88,7 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
           });
         },
         onSaveAll: isLastImage ? _save : null,
+        className: widget.className,
       ),
     );
   }
@@ -95,36 +96,16 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
   Future<void> _save() async {
     if (!allImagesLabeled) return;
 
-    setState(() => _isSaving = true);
-
-    try {
-      // 1. Upload files to temp
-      await TrainingService.uploadFilesToTemp(images);
-      // 2. Send metadata to model/update
-      await TrainingService.uploadClassData(
-        className: widget.className,
-        images: images,
-        riskLevel: _riskLevel,
-        babyProfileId: widget.babyProfileId,
-        modelType: widget.modelType,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Images and labels saved successfully')),
-        );
-        Navigator.pop(context, true);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
+    // Instead of uploading, return the new class data to the previous screen
+    final newClass = {
+      'className': widget.className,
+      'images': images,
+      'riskLevel': _riskLevel,
+      'babyProfileId': widget.babyProfileId,
+      'modelType': widget.modelType,
+    };
+    if (mounted) {
+      Navigator.pop(context, newClass);
     }
   }
 
@@ -150,21 +131,6 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
-                    DropdownButton<String>(
-                      value: _riskLevel,
-                      items: const [
-                        DropdownMenuItem(value: 'low', child: Text('Low Risk')),
-                        DropdownMenuItem(
-                            value: 'medium', child: Text('Medium Risk')),
-                        DropdownMenuItem(
-                            value: 'high', child: Text('High Risk')),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => _riskLevel = value);
-                        }
-                      },
-                    ),
                   ],
                 ),
               ),
@@ -187,11 +153,17 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Text(
-                  allImagesLabeled
-                      ? 'All images labeled! Ready to save.'
-                      : '${images.where((img) => img.boundingBoxes.isEmpty).length} images need labeling.',
+                  images.isEmpty
+                      ? 'Add images to get started.'
+                      : allImagesLabeled
+                          ? 'All images labeled! Ready to save.'
+                          : '${images.where((img) => img.boundingBoxes.isEmpty).length} images need labeling.',
                   style: TextStyle(
-                    color: allImagesLabeled ? Colors.green : Colors.orange,
+                    color: images.isEmpty
+                        ? Colors.blue
+                        : allImagesLabeled
+                            ? Colors.green
+                            : Colors.orange,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
