@@ -48,8 +48,8 @@ class _BabySettingsScreenState extends State<BabySettingsScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          const ManageDangerousObjectsScreen(),
+                      builder: (context) => ManageDangerousObjectsScreen(
+                          babyProfileId: widget.baby.id),
                     ),
                   );
                 },

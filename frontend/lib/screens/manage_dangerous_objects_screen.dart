@@ -1,30 +1,22 @@
 import 'package:flutter/material.dart';
 import '../components/settings/add_dangerous_object_section.dart';
-import '../components/settings/dangerous_object_list_section.dart';
+import 'dangerous_object_list_dialog.dart';
 
-class ManageDangerousObjectsScreen extends StatefulWidget {
-  const ManageDangerousObjectsScreen({Key? key}) : super(key: key);
+class ManageDangerousObjectsScreen extends StatelessWidget {
+  final int babyProfileId;
+  const ManageDangerousObjectsScreen({Key? key, required this.babyProfileId})
+      : super(key: key);
 
-  @override
-  State<ManageDangerousObjectsScreen> createState() =>
-      _ManageDangerousObjectsScreenState();
-}
-
-class _ManageDangerousObjectsScreenState
-    extends State<ManageDangerousObjectsScreen> {
-  final List<String> _headCameraDangerous = ['Knife', 'Scissors'];
-  final List<String> _staticCameraDangerous = ['Box Cutter'];
-
-  void _deleteHeadCameraDangerous(String obj) {
-    setState(() {
-      _headCameraDangerous.remove(obj);
-    });
-  }
-
-  void _deleteStaticCameraDangerous(String obj) {
-    setState(() {
-      _staticCameraDangerous.remove(obj);
-    });
+  void _openDangerousObjectListDialog(BuildContext context, String cameraType) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => DangerousObjectListDialog(
+          babyProfileId: babyProfileId,
+          cameraType: cameraType,
+        ),
+      ),
+    );
   }
 
   @override
@@ -39,24 +31,20 @@ class _ManageDangerousObjectsScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Add Dangerous Object (Head Camera)
               AddDangerousObjectSection(cameraType: 'Head Camera'),
               const SizedBox(height: 16),
-              // Add Dangerous Object (Static Camera)
               AddDangerousObjectSection(cameraType: 'Static Camera'),
               const SizedBox(height: 32),
-              // List all dangerous objects for head camera
-              DangerousObjectListSection(
-                cameraType: 'Head Camera',
-                dangerousObjects: _headCameraDangerous,
-                onDelete: _deleteHeadCameraDangerous,
+              ElevatedButton(
+                onPressed: () =>
+                    _openDangerousObjectListDialog(context, 'head_camera'),
+                child: const Text('View Dangerous Objects (Head Camera)'),
               ),
               const SizedBox(height: 16),
-              // List all dangerous objects for static camera
-              DangerousObjectListSection(
-                cameraType: 'Static Camera',
-                dangerousObjects: _staticCameraDangerous,
-                onDelete: _deleteStaticCameraDangerous,
+              ElevatedButton(
+                onPressed: () =>
+                    _openDangerousObjectListDialog(context, 'static_camera'),
+                child: const Text('View Dangerous Objects (Static Camera)'),
               ),
             ],
           ),
