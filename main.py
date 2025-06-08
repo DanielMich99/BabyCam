@@ -7,6 +7,7 @@ from app.routes.user_routes import router as user_router
 from app.routes.camera_routes import router as camera_router
 from app.routes.alert_routes import router as alert_router
 from app.routes.detection_routes import router as detection_router
+from app.routes.class_routes import router as class_router
 from app.routes.baby_profile_routes import router as baby_profile_router
 from app.routes.dangerous_objects_routes import router as dangerous_objects_router
 from app.routes import training_data_routes
@@ -18,6 +19,7 @@ from app.routes import baby_profile_routes
 from app.routes import detection_result_routes
 from app.routes import streams_routes
 from app.routes import realtime_routes
+from app.routes import class_routes
 from database.init_db import init_db
 import sys
 import os
@@ -84,6 +86,7 @@ app.include_router(baby_profile_routes.router)
 app.include_router(detection_result_routes.router)
 app.include_router(streams_routes.router, prefix="/api/streaming", tags=["Streaming"])
 app.include_router(realtime_routes.router)
+app.include_router(class_routes.router)
 
 if __name__ == "__main__":
     import uvicorn

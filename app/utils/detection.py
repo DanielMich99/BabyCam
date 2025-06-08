@@ -7,7 +7,7 @@ from datetime import datetime
 #from app.services.monitoring_service import stop_monitoring_service
 from app.models.detection_result_model import DetectionResult
 from app.models.class_model import ClassObject
-from app.utils.fcm_push import send_push_notification, send_push_notifications
+from app.utils.fcm_push import send_push_notifications
 from app.models.user_model import User, UserFCMToken
 from app.models.baby_profile_model import BabyProfile
 from app.utils.config import config
