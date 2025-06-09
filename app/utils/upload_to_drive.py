@@ -31,6 +31,14 @@ def zip_dataset(user_id: int, camera_type: str) -> str:
     print(f"[ZIP] Created {zip_path}")
     return zip_path
 
+def cleanup_zip(user_id: int, camera_type: str):
+    zip_path = f"{user_id}_{camera_type}.zip"
+    if os.path.exists(zip_path):
+        os.remove(zip_path)
+        print(f"[CLEANUP] Deleted local zip file: {zip_path}")
+    else:
+        print(f"[CLEANUP] No zip file found to delete: {zip_path}")
+
 '''def upload_to_drive(local_zip_path: str, baby_profile_id: int, model_type: str, drive_base_folder: str = "babycam_data"):
     gauth = GoogleAuth()
     gauth.LocalWebserverAuth()

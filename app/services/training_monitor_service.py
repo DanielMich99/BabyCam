@@ -2,6 +2,7 @@ import os
 import time
 import threading
 import asyncio
+from datetime import datetime, timezone
 from app.utils.google_drive_service import GoogleDriveService
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -35,8 +36,9 @@ def polling_loop():
                 user_id = training["user_id"]
                 baby_profile_id = training["baby_profile_id"]
                 camera_type = training["camera_type"]
+                start_time = training["start_time"]
 
-                if check_and_download_model(user_id, camera_type):
+                if check_and_download_model(user_id, camera_type, start_time):
                     print(f"[TRAINING MONITOR] Model ready for {user_id} - {camera_type}")
 
                     # שליחת סוקט - לפי המימוש שלך: broadcast_detection(user_id, event_data)
@@ -103,7 +105,7 @@ def start_monitoring_thread():
     results[0].GetContentFile(local_path)
     return True'''
 
-def check_and_download_model(user_id: int, camera_type: str) -> bool:
+def check_and_download_model(user_id: int, camera_type: str, start_time: float) -> bool:
     file_name = f"{user_id}_{camera_type}_model.pt"
     local_path = os.path.join("uploads", "training_data", str(user_id), camera_type, file_name)
 
@@ -112,23 +114,25 @@ def check_and_download_model(user_id: int, camera_type: str) -> bool:
     profile_folder_id = drive_service.get_or_create_folder(str(user_id), root_folder_id)
     model_folder_id = drive_service.get_or_create_folder(camera_type, profile_folder_id)
 
-    # בודק האם הקובץ קיים בתיקיה
+    # בודק אם קובץ קיים עם createdTime
     query = f"'{model_folder_id}' in parents and name='{file_name}' and trashed=false"
-    results = drive_service.service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
+    results = drive_service.service.files().list(q=query, fields="files(id, name, createdTime)").execute().get('files', [])
 
     if not results:
         return False
 
-    # מוריד את הקובץ
-    file_id = results[0]['id']
-    request = drive_service.service.files().get_media(fileId=file_id)
-    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+    file_metadata = results[0]
+    created_time_str = file_metadata['createdTime']
+    created_time = datetime.fromisoformat(created_time_str.replace("Z", "+00:00"))
+    start_dt = datetime.fromtimestamp(start_time, tz=timezone.utc)
 
-    with open(local_path, 'wb') as f:
-        downloader = drive_service.MediaIoBaseDownload(f, request)
-        done = False
-        while not done:
-            status, done = downloader.next_chunk()
-            print(f"[DOWNLOAD] Download {int(status.progress() * 100)}%")
+    if created_time < start_dt:
+        print(f"[SKIP] Found old model created at {created_time}, waiting for new model...")
+        return False
+
+    # מוריד את הקובץ
+    file_id = file_metadata['id']
+    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+    drive_service.download_file(file_id, local_path)
 
     return True
