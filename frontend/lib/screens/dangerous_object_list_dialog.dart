@@ -137,12 +137,6 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
-          if (!_deleteMode)
-            IconButton(
-              icon: const Icon(Icons.delete),
-              tooltip: 'Delete',
-              onPressed: _dangerousObjects.isEmpty ? null : _toggleDeleteMode,
-            ),
           if (_deleteMode) ...[
             IconButton(
               icon: const Icon(Icons.cancel),
