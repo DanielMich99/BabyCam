@@ -10,7 +10,9 @@ import '../services/training_service.dart';
 
 class ManageDangerousObjectsScreen extends StatefulWidget {
   final int babyProfileId;
-  const ManageDangerousObjectsScreen({Key? key, required this.babyProfileId})
+  final String cameraType;
+  const ManageDangerousObjectsScreen(
+      {Key? key, required this.babyProfileId, required this.cameraType})
       : super(key: key);
 
   @override
@@ -225,8 +227,9 @@ class _ManageDangerousObjectsScreenState
       // 4. Prepare request
       final body = {
         'baby_profile_id': widget.babyProfileId,
-        'model_type':
-            newClasses.isNotEmpty ? _pendingAdditions.first['modelType'] : '',
+        'model_type': widget.cameraType == 'Head Camera'
+            ? 'head_camera'
+            : 'static_camera',
         'new_classes': newClasses,
         'updated_classes': [],
         'deleted_classes': deletedClasses,

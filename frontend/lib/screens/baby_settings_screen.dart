@@ -49,7 +49,9 @@ class _BabySettingsScreenState extends State<BabySettingsScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => ManageDangerousObjectsScreen(
-                          babyProfileId: widget.baby.id),
+                        babyProfileId: widget.baby.id,
+                        cameraType: 'Head Camera',
+                      ),
                     ),
                   );
                 },
