@@ -20,9 +20,9 @@ def _get_next_index(folder_path: str, prefix: str):
     
     return max_index + 1
 
-def _save_and_rename_files(temp_folder: str, dest_folder: str, files: list[str], baby_profile_id: int, model_type: str, file_type: str):
+def _save_and_rename_files(temp_folder: str, dest_folder: str, files: list[str], baby_profile_id: int, model_type: str, file_type: str, class_name: str):
     os.makedirs(dest_folder, exist_ok=True)
-    prefix = f"{baby_profile_id}_{model_type}"
+    prefix = f"{baby_profile_id}_{model_type}_{class_name}"
     next_index = _get_next_index(dest_folder, prefix)
 
     new_filenames = []
@@ -46,8 +46,8 @@ def add_class_data(base_path: str, item, baby_profile_id: int, model_type: str):
     os.makedirs(labels_path, exist_ok=True)
 
     temp_folder = os.path.join("uploads", "temp")
-    _save_and_rename_files(temp_folder, images_path, item.files.images, baby_profile_id, model_type, "image")
-    _save_and_rename_files(temp_folder, labels_path, item.files.labels, baby_profile_id, model_type, "label")
+    _save_and_rename_files(temp_folder, images_path, item.files.images, baby_profile_id, model_type, "image", item.name)
+    _save_and_rename_files(temp_folder, labels_path, item.files.labels, baby_profile_id, model_type, "label", item.name)
 
 def append_to_class_data(base_path: str, item, baby_profile_id: int, model_type: str):
     class_path = os.path.join(base_path, "objects", item.name)
@@ -58,5 +58,5 @@ def append_to_class_data(base_path: str, item, baby_profile_id: int, model_type:
         raise FileNotFoundError(f"Class folder {item.name} not found.")
 
     temp_folder = os.path.join("uploads", "temp")
-    _save_and_rename_files(temp_folder, images_path, item.files.images, baby_profile_id, model_type, "image")
-    _save_and_rename_files(temp_folder, labels_path, item.files.labels, baby_profile_id, model_type, "label")
+    _save_and_rename_files(temp_folder, images_path, item.files.images, baby_profile_id, model_type, "image", item.name)
+    _save_and_rename_files(temp_folder, labels_path, item.files.labels, baby_profile_id, model_type, "label", item.name)
