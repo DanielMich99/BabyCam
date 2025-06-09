@@ -10,7 +10,9 @@ import '../services/training_service.dart';
 
 class ManageDangerousObjectsScreen extends StatefulWidget {
   final int babyProfileId;
-  const ManageDangerousObjectsScreen({Key? key, required this.babyProfileId})
+  final String cameraType;
+  const ManageDangerousObjectsScreen(
+      {Key? key, required this.babyProfileId, required this.cameraType})
       : super(key: key);
 
   @override
@@ -22,28 +24,45 @@ class _ManageDangerousObjectsScreenState
     extends State<ManageDangerousObjectsScreen> {
   final List<Map<String, dynamic>> _pendingDeletions = [];
   final List<Map<String, dynamic>> _pendingAdditions = [];
+  final List<Map<String, dynamic>> _pendingUpdates = [];
+  final List<Map<String, dynamic>> _pendingRiskLevelUpdates = [];
 
-  Future<void> _openDangerousObjectListDialog(
-      BuildContext context, String cameraType, String cameraLabel) async {
-    final deletedObjects = await Navigator.of(context).push(
+  Future<void> _openDangerousObjectListDialog(BuildContext context) async {
+    final result = await Navigator.of(context).push(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (context) => DangerousObjectListDialog(
           babyProfileId: widget.babyProfileId,
-          cameraType: cameraType,
         ),
       ),
     );
-    if (deletedObjects != null &&
-        deletedObjects is List &&
-        deletedObjects.isNotEmpty) {
+    if (result != null && result is List) {
       setState(() {
-        _pendingDeletions.addAll(deletedObjects.map((obj) => {
+        for (var obj in result) {
+          if (obj['original_id'] != null) {
+            // This is an update
+            _pendingUpdates.add(obj);
+          } else if (obj['old_risk'] != null && obj['new_risk'] != null) {
+            // This is a risk level update
+            final existing = _pendingRiskLevelUpdates
+                .indexWhere((e) => e['id'] == obj['id']);
+            if (existing != -1) {
+              _pendingRiskLevelUpdates[existing] = obj;
+            } else {
+              _pendingRiskLevelUpdates.add(obj);
+            }
+          } else {
+            // This is a deletion
+            _pendingDeletions.add({
               'id': obj['id'],
               'name': obj['name'],
               'risk_level': obj['risk_level'],
-              'camera_label': cameraLabel,
-            }));
+              'camera_label': obj['camera_type'] == 'head_camera'
+                  ? 'Head Camera'
+                  : 'Static Camera',
+            });
+          }
+        }
       });
     }
   }
@@ -183,6 +202,18 @@ class _ManageDangerousObjectsScreenState
     });
   }
 
+  void _removePendingUpdate(int index) {
+    setState(() {
+      _pendingUpdates.removeAt(index);
+    });
+  }
+
+  void _removePendingRiskLevelUpdate(int index) {
+    setState(() {
+      _pendingRiskLevelUpdates.removeAt(index);
+    });
+  }
+
   void _undoPendingDeletion(int index) {
     setState(() {
       _pendingDeletions.removeAt(index);
@@ -190,7 +221,10 @@ class _ManageDangerousObjectsScreenState
   }
 
   Future<void> _updateModel(BuildContext context) async {
-    if (_pendingAdditions.isEmpty && _pendingDeletions.isEmpty) return;
+    if (_pendingAdditions.isEmpty &&
+        _pendingDeletions.isEmpty &&
+        _pendingUpdates.isEmpty &&
+        _pendingRiskLevelUpdates.isEmpty) return;
     // Show loading dialog
     showDialog(
       context: context,
@@ -198,8 +232,8 @@ class _ManageDangerousObjectsScreenState
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
     try {
-      // 1. Upload all new images and label files for each pending addition
-      for (final cls in _pendingAdditions) {
+      // 1. Upload all new images and label files for each pending addition and update
+      for (final cls in [..._pendingAdditions, ..._pendingUpdates]) {
         await TrainingService.uploadFilesToTemp(List.from(cls['images']));
       }
       // 2. Prepare new_classes
@@ -219,19 +253,54 @@ class _ManageDangerousObjectsScreenState
           },
         };
       }).toList();
-      // 3. Prepare deleted_classes
+      // 3. Prepare updated_classes
+      List<Map<String, dynamic>> updatedClasses = _pendingUpdates.map((cls) {
+        final imageFilenames = <String>[];
+        final labelFilenames = <String>[];
+        for (var image in cls['images']) {
+          imageFilenames.add(image.filename);
+          labelFilenames.add('${image.filename.split('.').first}.txt');
+        }
+        return {
+          'id': cls['original_id'],
+          'name': cls['className'],
+          'risk_level': cls['riskLevel'],
+          'files': {
+            'images': imageFilenames,
+            'labels': labelFilenames,
+          },
+        };
+      }).toList();
+      // 3b. Add pending risk level updates to updated_classes (if not already present)
+      for (final obj in _pendingRiskLevelUpdates) {
+        final alreadyInUpdates =
+            updatedClasses.any((u) => u['id'] == obj['id']);
+        if (!alreadyInUpdates) {
+          updatedClasses.add({
+            'id': obj['id'],
+            'name': obj['name'],
+            'risk_level': obj['new_risk'],
+            'files': {
+              'images': [],
+              'labels': [],
+            },
+          });
+        }
+      }
+      // 4. Prepare deleted_classes
       List<String> deletedClasses =
           _pendingDeletions.map((obj) => obj['name'] as String).toList();
-      // 4. Prepare request
+      // 5. Prepare request
       final body = {
         'baby_profile_id': widget.babyProfileId,
-        'model_type':
-            newClasses.isNotEmpty ? _pendingAdditions.first['modelType'] : '',
+        'model_type': widget.cameraType == 'Head Camera'
+            ? 'head_camera'
+            : 'static_camera',
         'new_classes': newClasses,
-        'updated_classes': [],
+        'updated_classes': updatedClasses,
         'deleted_classes': deletedClasses,
       };
-      // 5. Send request
+      // 6. Send request
       final token = await AuthState.getAuthToken();
       final response = await http.post(
         Uri.parse('http://10.0.2.2:8000/model/update'),
@@ -246,6 +315,8 @@ class _ManageDangerousObjectsScreenState
         setState(() {
           _pendingAdditions.clear();
           _pendingDeletions.clear();
+          _pendingUpdates.clear();
+          _pendingRiskLevelUpdates.clear();
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Model updated successfully!')),
@@ -294,15 +365,21 @@ class _ManageDangerousObjectsScreenState
               ),
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: () => _openDangerousObjectListDialog(
-                    context, 'head_camera', 'Head Camera'),
-                child: const Text('View Dangerous Objects (Head Camera)'),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => _openDangerousObjectListDialog(
-                    context, 'static_camera', 'Static Camera'),
-                child: const Text('View Dangerous Objects (Static Camera)'),
+                onPressed: () => _openDangerousObjectListDialog(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.blue,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  side: const BorderSide(color: Colors.transparent),
+                ),
+                child: const Text('View Dangerous Objects',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.blue)),
               ),
               const SizedBox(height: 32),
               if (_pendingAdditions.isNotEmpty) ...[
@@ -350,6 +427,125 @@ class _ManageDangerousObjectsScreenState
                                       color: Colors.red),
                                   tooltip: 'Remove',
                                   onPressed: () => _removePendingAddition(idx),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+              if (_pendingRiskLevelUpdates.isNotEmpty) ...[
+                Card(
+                  color: Colors.yellow[50],
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Pending Risk Level Updates:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ..._pendingRiskLevelUpdates
+                            .asMap()
+                            .entries
+                            .map((entry) {
+                          final obj = entry.value;
+                          final idx = entry.key;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                Icon(Icons.warning,
+                                    color: Colors.orange[300], size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                    child: Text(
+                                        '${obj['name']} (${obj['camera_type'] == 'head_camera' ? 'Head Camera' : 'Static Camera'})',
+                                        style: const TextStyle(fontSize: 15))),
+                                Text('Risk: ',
+                                    style: const TextStyle(fontSize: 15)),
+                                Text('${obj['old_risk']}',
+                                    style: const TextStyle(
+                                        fontSize: 15, color: Colors.grey)),
+                                const Icon(Icons.arrow_right_alt,
+                                    color: Colors.orange),
+                                Text('${obj['new_risk']}',
+                                    style: const TextStyle(
+                                        fontSize: 15, color: Colors.orange)),
+                                IconButton(
+                                  icon: const Icon(Icons.undo,
+                                      color: Colors.blue),
+                                  tooltip: 'Undo',
+                                  onPressed: () =>
+                                      _removePendingRiskLevelUpdate(idx),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+              if (_pendingUpdates.isNotEmpty) ...[
+                Card(
+                  color: Colors.orange[50],
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Pending Updates:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ..._pendingUpdates.asMap().entries.map((entry) {
+                          final obj = entry.value;
+                          final idx = entry.key;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit,
+                                    color: Colors.orange[300], size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                    child: Text(
+                                        '${obj['className']} (Risk: ${obj['riskLevel']}, ${obj['camera_type'] == 'head_camera' ? 'Head Camera' : 'Static Camera'})',
+                                        style: const TextStyle(fontSize: 15))),
+                                IconButton(
+                                  icon: const Icon(Icons.edit,
+                                      color: Colors.blue),
+                                  tooltip: 'Edit',
+                                  onPressed: () => _startAddObjectFlow(context,
+                                      editClass: obj, editIndex: idx),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete,
+                                      color: Colors.red),
+                                  tooltip: 'Remove',
+                                  onPressed: () => _removePendingUpdate(idx),
                                 ),
                               ],
                             ),
