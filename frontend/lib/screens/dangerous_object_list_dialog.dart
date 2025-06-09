@@ -5,10 +5,10 @@ import '../services/auth_state.dart';
 
 class DangerousObjectListDialog extends StatefulWidget {
   final int babyProfileId;
-  final String cameraType;
-  const DangerousObjectListDialog(
-      {Key? key, required this.babyProfileId, required this.cameraType})
-      : super(key: key);
+  const DangerousObjectListDialog({
+    Key? key,
+    required this.babyProfileId,
+  }) : super(key: key);
 
   @override
   State<DangerousObjectListDialog> createState() =>
@@ -21,6 +21,7 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
   bool _loading = true;
   String? _error;
   bool _deleteMode = false;
+  String _selectedCameraType = 'head_camera';
 
   @override
   void initState() {
@@ -38,7 +39,7 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
       if (token == null) throw Exception('Not authenticated');
       final baseUrl = 'http://10.0.2.2:8000/classes/';
       final uri = Uri.parse(
-          '$baseUrl?baby_profile_id=${widget.babyProfileId}&camera_type=${Uri.encodeComponent(widget.cameraType)}');
+          '$baseUrl?baby_profile_id=${widget.babyProfileId}&camera_type=${Uri.encodeComponent(_selectedCameraType)}');
       final resp =
           await http.get(uri, headers: {'Authorization': 'Bearer $token'});
       if (resp.statusCode != 200) {
@@ -51,6 +52,7 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
                   'id': e['id'],
                   'name': e['name'],
                   'risk_level': e['risk_level'],
+                  'camera_type': _selectedCameraType,
                 })
             .toList();
         _loading = false;
@@ -60,6 +62,16 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
         _error = e.toString();
         _loading = false;
       });
+    }
+  }
+
+  void _onCameraTypeChanged(String? newValue) {
+    if (newValue != null && newValue != _selectedCameraType) {
+      setState(() {
+        _selectedCameraType = newValue;
+        _selectedForDelete.clear();
+      });
+      _fetchDangerousObjects();
     }
   }
 
@@ -93,11 +105,7 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Dangerous Objects (' +
-            (widget.cameraType == 'head_camera'
-                ? 'Head Camera'
-                : 'Static Camera') +
-            ')'),
+        title: const Text('Dangerous Objects'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
@@ -123,93 +131,135 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
           ]
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(child: Text('Error: $_error'))
-              : _dangerousObjects.isEmpty
-                  ? const Center(child: Text('No dangerous objects found.'))
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _dangerousObjects.length,
-                      itemBuilder: (context, index) {
-                        final obj = _dangerousObjects[index];
-                        final riskColor = _riskColor(obj['risk_level']);
-                        Widget content = Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 14,
-                              height: 14,
-                              margin: const EdgeInsets.only(right: 16),
-                              decoration: BoxDecoration(
-                                color: riskColor,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                const Text(
+                  'Camera Type:',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                DropdownButton<String>(
+                  value: _selectedCameraType,
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'head_camera',
+                      child: Text('Head Camera'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'static_camera',
+                      child: Text('Static Camera'),
+                    ),
+                  ],
+                  onChanged: _onCameraTypeChanged,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? Center(child: Text('Error: $_error'))
+                    : _dangerousObjects.isEmpty
+                        ? const Center(
+                            child: Text('No dangerous objects found.'))
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _dangerousObjects.length,
+                            itemBuilder: (context, index) {
+                              final obj = _dangerousObjects[index];
+                              final riskColor = _riskColor(obj['risk_level']);
+                              Widget content = Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Text(
-                                    obj['name'],
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
+                                  Container(
+                                    width: 14,
+                                    height: 14,
+                                    margin: const EdgeInsets.only(right: 16),
+                                    decoration: BoxDecoration(
+                                      color: riskColor,
+                                      shape: BoxShape.circle,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Risk: ${obj['risk_level']}',
-                                    style: TextStyle(
-                                      color: Colors.grey[700],
-                                      fontSize: 14,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          obj['name'],
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Risk: ${obj['risk_level']}',
+                                          style: TextStyle(
+                                            color: Colors.grey[700],
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
-                              ),
-                            ),
-                          ],
-                        );
-                        if (_deleteMode) {
-                          return Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            margin: const EdgeInsets.symmetric(vertical: 8),
-                            child: CheckboxListTile(
-                              value:
-                                  _selectedForDelete.contains(obj['id'] as int),
-                              onChanged: (checked) {
-                                setState(() {
-                                  if (checked == true) {
-                                    _selectedForDelete.add(obj['id'] as int);
-                                  } else {
-                                    _selectedForDelete.remove(obj['id'] as int);
-                                  }
-                                });
-                              },
-                              title: content,
-                              controlAffinity: ListTileControlAffinity.leading,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                            ),
-                          );
-                        } else {
-                          return Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            margin: const EdgeInsets.symmetric(vertical: 8),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 16),
-                              child: content,
-                            ),
-                          );
-                        }
-                      },
-                    ),
+                              );
+                              if (_deleteMode) {
+                                return Card(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 8),
+                                  child: CheckboxListTile(
+                                    value: _selectedForDelete
+                                        .contains(obj['id'] as int),
+                                    onChanged: (checked) {
+                                      setState(() {
+                                        if (checked == true) {
+                                          _selectedForDelete
+                                              .add(obj['id'] as int);
+                                        } else {
+                                          _selectedForDelete
+                                              .remove(obj['id'] as int);
+                                        }
+                                      });
+                                    },
+                                    title: content,
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                  ),
+                                );
+                              } else {
+                                return Card(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 8),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 16),
+                                    child: content,
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -25,14 +25,12 @@ class _ManageDangerousObjectsScreenState
   final List<Map<String, dynamic>> _pendingDeletions = [];
   final List<Map<String, dynamic>> _pendingAdditions = [];
 
-  Future<void> _openDangerousObjectListDialog(
-      BuildContext context, String cameraType, String cameraLabel) async {
+  Future<void> _openDangerousObjectListDialog(BuildContext context) async {
     final deletedObjects = await Navigator.of(context).push(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (context) => DangerousObjectListDialog(
           babyProfileId: widget.babyProfileId,
-          cameraType: cameraType,
         ),
       ),
     );
@@ -44,7 +42,9 @@ class _ManageDangerousObjectsScreenState
               'id': obj['id'],
               'name': obj['name'],
               'risk_level': obj['risk_level'],
-              'camera_label': cameraLabel,
+              'camera_label': obj['camera_type'] == 'head_camera'
+                  ? 'Head Camera'
+                  : 'Static Camera',
             }));
       });
     }
@@ -297,15 +297,21 @@ class _ManageDangerousObjectsScreenState
               ),
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: () => _openDangerousObjectListDialog(
-                    context, 'head_camera', 'Head Camera'),
-                child: const Text('View Dangerous Objects (Head Camera)'),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => _openDangerousObjectListDialog(
-                    context, 'static_camera', 'Static Camera'),
-                child: const Text('View Dangerous Objects (Static Camera)'),
+                onPressed: () => _openDangerousObjectListDialog(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.blue,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  side: const BorderSide(color: Colors.transparent),
+                ),
+                child: const Text('View Dangerous Objects',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.blue)),
               ),
               const SizedBox(height: 32),
               if (_pendingAdditions.isNotEmpty) ...[
