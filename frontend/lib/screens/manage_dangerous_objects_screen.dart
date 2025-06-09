@@ -25,6 +25,7 @@ class _ManageDangerousObjectsScreenState
   final List<Map<String, dynamic>> _pendingDeletions = [];
   final List<Map<String, dynamic>> _pendingAdditions = [];
   final List<Map<String, dynamic>> _pendingUpdates = [];
+  final List<Map<String, dynamic>> _pendingRiskLevelUpdates = [];
 
   Future<void> _openDangerousObjectListDialog(BuildContext context) async {
     final result = await Navigator.of(context).push(
@@ -41,6 +42,15 @@ class _ManageDangerousObjectsScreenState
           if (obj['original_id'] != null) {
             // This is an update
             _pendingUpdates.add(obj);
+          } else if (obj['old_risk'] != null && obj['new_risk'] != null) {
+            // This is a risk level update
+            final existing = _pendingRiskLevelUpdates
+                .indexWhere((e) => e['id'] == obj['id']);
+            if (existing != -1) {
+              _pendingRiskLevelUpdates[existing] = obj;
+            } else {
+              _pendingRiskLevelUpdates.add(obj);
+            }
           } else {
             // This is a deletion
             _pendingDeletions.add({
@@ -198,6 +208,12 @@ class _ManageDangerousObjectsScreenState
     });
   }
 
+  void _removePendingRiskLevelUpdate(int index) {
+    setState(() {
+      _pendingRiskLevelUpdates.removeAt(index);
+    });
+  }
+
   void _undoPendingDeletion(int index) {
     setState(() {
       _pendingDeletions.removeAt(index);
@@ -207,7 +223,8 @@ class _ManageDangerousObjectsScreenState
   Future<void> _updateModel(BuildContext context) async {
     if (_pendingAdditions.isEmpty &&
         _pendingDeletions.isEmpty &&
-        _pendingUpdates.isEmpty) return;
+        _pendingUpdates.isEmpty &&
+        _pendingRiskLevelUpdates.isEmpty) return;
     // Show loading dialog
     showDialog(
       context: context,
@@ -254,6 +271,22 @@ class _ManageDangerousObjectsScreenState
           },
         };
       }).toList();
+      // 3b. Add pending risk level updates to updated_classes (if not already present)
+      for (final obj in _pendingRiskLevelUpdates) {
+        final alreadyInUpdates =
+            updatedClasses.any((u) => u['id'] == obj['id']);
+        if (!alreadyInUpdates) {
+          updatedClasses.add({
+            'id': obj['id'],
+            'name': obj['name'],
+            'risk_level': obj['new_risk'],
+            'files': {
+              'images': [],
+              'labels': [],
+            },
+          });
+        }
+      }
       // 4. Prepare deleted_classes
       List<String> deletedClasses =
           _pendingDeletions.map((obj) => obj['name'] as String).toList();
@@ -283,6 +316,7 @@ class _ManageDangerousObjectsScreenState
           _pendingAdditions.clear();
           _pendingDeletions.clear();
           _pendingUpdates.clear();
+          _pendingRiskLevelUpdates.clear();
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Model updated successfully!')),
@@ -393,6 +427,69 @@ class _ManageDangerousObjectsScreenState
                                       color: Colors.red),
                                   tooltip: 'Remove',
                                   onPressed: () => _removePendingAddition(idx),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+              if (_pendingRiskLevelUpdates.isNotEmpty) ...[
+                Card(
+                  color: Colors.yellow[50],
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Pending Risk Level Updates:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ..._pendingRiskLevelUpdates
+                            .asMap()
+                            .entries
+                            .map((entry) {
+                          final obj = entry.value;
+                          final idx = entry.key;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                Icon(Icons.warning,
+                                    color: Colors.orange[300], size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                    child: Text(
+                                        '${obj['name']} (${obj['camera_type'] == 'head_camera' ? 'Head Camera' : 'Static Camera'})',
+                                        style: const TextStyle(fontSize: 15))),
+                                Text('Risk: ',
+                                    style: const TextStyle(fontSize: 15)),
+                                Text('${obj['old_risk']}',
+                                    style: const TextStyle(
+                                        fontSize: 15, color: Colors.grey)),
+                                const Icon(Icons.arrow_right_alt,
+                                    color: Colors.orange),
+                                Text('${obj['new_risk']}',
+                                    style: const TextStyle(
+                                        fontSize: 15, color: Colors.orange)),
+                                IconButton(
+                                  icon: const Icon(Icons.undo,
+                                      color: Colors.blue),
+                                  tooltip: 'Undo',
+                                  onPressed: () =>
+                                      _removePendingRiskLevelUpdate(idx),
                                 ),
                               ],
                             ),

@@ -23,6 +23,7 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
   String? _error;
   bool _deleteMode = false;
   String _selectedCameraType = 'head_camera';
+  final List<Map<String, dynamic>> _pendingRiskLevelUpdates = [];
 
   @override
   void initState() {
@@ -127,6 +128,79 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
     }
   }
 
+  void _addPendingRiskLevelUpdate(Map<String, dynamic> obj, String newRisk) {
+    final existing =
+        _pendingRiskLevelUpdates.indexWhere((e) => e['id'] == obj['id']);
+    if (existing != -1) {
+      _pendingRiskLevelUpdates[existing]['new_risk'] = newRisk;
+    } else {
+      _pendingRiskLevelUpdates.add({
+        'id': obj['id'],
+        'name': obj['name'],
+        'old_risk': obj['risk_level'],
+        'new_risk': newRisk,
+        'camera_type': obj['camera_type'],
+      });
+    }
+    setState(() {
+      final idx = _dangerousObjects.indexWhere((o) => o['id'] == obj['id']);
+      if (idx != -1) _dangerousObjects[idx]['risk_level'] = newRisk;
+    });
+  }
+
+  void _showRiskLevelDialog(Map<String, dynamic> obj) async {
+    String selected = obj['risk_level'];
+    final newRisk = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Update Risk Level'),
+        content: StatefulBuilder(
+          builder: (context, setState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RadioListTile<String>(
+                value: 'low',
+                groupValue: selected,
+                onChanged: (v) => setState(() => selected = v!),
+                title: const Text('Low'),
+              ),
+              RadioListTile<String>(
+                value: 'medium',
+                groupValue: selected,
+                onChanged: (v) => setState(() => selected = v!),
+                title: const Text('Medium'),
+              ),
+              RadioListTile<String>(
+                value: 'high',
+                groupValue: selected,
+                onChanged: (v) => setState(() => selected = v!),
+                title: const Text('High'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, selected),
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+    if (newRisk != null && newRisk != obj['risk_level']) {
+      _addPendingRiskLevelUpdate(obj, newRisk);
+    }
+  }
+
+  void _returnAllChanges() {
+    Navigator.of(context).pop(
+        _pendingRiskLevelUpdates.isNotEmpty ? _pendingRiskLevelUpdates : null);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,7 +208,7 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
         title: const Text('Dangerous Objects'),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: _returnAllChanges,
         ),
         actions: [
           if (_deleteMode) ...[
@@ -221,12 +295,27 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
                                           ),
                                         ),
                                         const SizedBox(height: 4),
-                                        Text(
-                                          'Risk: ${obj['risk_level']}',
-                                          style: TextStyle(
-                                            color: Colors.grey[700],
-                                            fontSize: 14,
-                                          ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'Risk: ${obj['risk_level']}',
+                                              style: TextStyle(
+                                                color: Colors.grey[700],
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            IconButton(
+                                              icon: const Icon(Icons.edit,
+                                                  size: 16,
+                                                  color: Colors.orange),
+                                              tooltip: 'Edit Risk Level',
+                                              padding: EdgeInsets.zero,
+                                              constraints: BoxConstraints(),
+                                              onPressed: () =>
+                                                  _showRiskLevelDialog(obj),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
