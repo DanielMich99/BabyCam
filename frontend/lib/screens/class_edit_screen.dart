@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import '../models/image_data.dart';
 import '../components/bounding_box_editor.dart';
 import '../services/training_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../services/auth_state.dart';
+import 'package:video_player/video_player.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 
 class ClassEditScreen extends StatefulWidget {
   final String className;
@@ -62,11 +71,69 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
     }
   }
 
+  Future<List<File>> _extractFramesFromVideo(String videoPath) async {
+    final videoController = VideoPlayerController.file(File(videoPath));
+    await videoController.initialize();
+
+    final duration = videoController.value.duration;
+    final frameInterval = const Duration(milliseconds: 500); // 0.5 seconds
+    final tempDir = await getTemporaryDirectory();
+    final framesDir = await Directory('${tempDir.path}/video_frames').create();
+
+    final frames = <File>[];
+    var currentPosition = Duration.zero;
+
+    while (currentPosition < duration) {
+      // Extract frame at current position
+      final thumbnail = await VideoThumbnail.thumbnailData(
+        video: videoPath,
+        imageFormat: ImageFormat.JPEG,
+        maxWidth: 1280, // Full HD width
+        quality: 100,
+        timeMs: currentPosition.inMilliseconds,
+      );
+
+      if (thumbnail != null) {
+        final frameFile = File('${framesDir.path}/frame_${frames.length}.jpg');
+        await frameFile.writeAsBytes(thumbnail);
+        frames.add(frameFile);
+      }
+
+      currentPosition += frameInterval;
+    }
+
+    await videoController.dispose();
+    return frames;
+  }
+
   void _pickVideoAndExtractFrames() async {
-    // TODO: Implement video picker and frame extraction
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Video frame extraction not implemented.')),
-    );
+    try {
+      final XFile? videoFile =
+          await _picker.pickVideo(source: ImageSource.gallery);
+      if (videoFile == null) return;
+
+      // Show loading indicator
+      setState(() => _isSaving = true);
+
+      // Extract frames locally
+      final frames = await _extractFramesFromVideo(videoFile.path);
+
+      // Add frames to the images list
+      setState(() {
+        final startIndex = images.length;
+        for (var i = 0; i < frames.length; i++) {
+          final frameFile = frames[i];
+          final filename = _generateImageFilename(startIndex + i);
+          images.add(ImageData(frameFile, filename));
+        }
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error processing video: $e')),
+      );
+    } finally {
+      setState(() => _isSaving = false);
+    }
   }
 
   void _editBoundingBox(ImageData image) {
