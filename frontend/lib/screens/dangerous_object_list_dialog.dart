@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/auth_state.dart';
+import '../screens/class_edit_screen.dart';
 
 class DangerousObjectListDialog extends StatefulWidget {
   final int babyProfileId;
@@ -98,6 +99,31 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
       case 'low':
       default:
         return Colors.green;
+    }
+  }
+
+  Future<void> _handleUpdate(Map<String, dynamic> obj) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ClassEditScreen(
+          className: obj['name'],
+          initialImages: const [], // Start with empty images for update
+          babyProfileId: widget.babyProfileId,
+          modelType: _selectedCameraType == 'head_camera'
+              ? 'head_camera_model'
+              : 'static_camera_model',
+        ),
+      ),
+    );
+    if (result != null && result is Map<String, dynamic>) {
+      // Add the original object's data to the result
+      result['original_id'] = obj['id'];
+      result['original_name'] = obj['name'];
+      result['original_risk_level'] = obj['risk_level'];
+      result['camera_type'] = _selectedCameraType;
+      Navigator.of(context)
+          .pop([result]); // Return as a list to match deletion pattern
     }
   }
 
@@ -211,6 +237,26 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
                                       ],
                                     ),
                                   ),
+                                  if (!_deleteMode) ...[
+                                    IconButton(
+                                      icon: const Icon(Icons.edit,
+                                          color: Colors.blue),
+                                      tooltip: 'Update',
+                                      onPressed: () => _handleUpdate(obj),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete,
+                                          color: Colors.red),
+                                      tooltip: 'Delete',
+                                      onPressed: () {
+                                        setState(() {
+                                          _selectedForDelete
+                                              .add(obj['id'] as int);
+                                        });
+                                        _onDeleteSelected();
+                                      },
+                                    ),
+                                  ],
                                 ],
                               );
                               if (_deleteMode) {
