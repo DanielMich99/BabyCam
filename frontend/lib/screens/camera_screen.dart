@@ -248,8 +248,7 @@ class _CameraScreenState extends State<CameraScreen> {
               activeCameras.add({
                 'name': baby.name,
                 'type': 'Static',
-                'profilePicture':
-                    baby.profilePicture ?? 'assets/images/default_baby.jpg',
+                'profilePicture': baby.profilePicture,
                 'ip': baby.staticCameraIp,
               });
             }
@@ -257,8 +256,7 @@ class _CameraScreenState extends State<CameraScreen> {
               activeCameras.add({
                 'name': baby.name,
                 'type': 'Head',
-                'profilePicture':
-                    baby.profilePicture ?? 'assets/images/default_baby.jpg',
+                'profilePicture': baby.profilePicture,
                 'ip': baby.headCameraIp,
               });
             }
@@ -319,8 +317,7 @@ class _CameraScreenState extends State<CameraScreen> {
                             final baby = babies[index];
                             return ChildCameraCube(
                               childName: baby.name,
-                              profilePicture: baby.profilePicture ??
-                                  'assets/images/default_baby.jpg',
+                              profilePicture: baby.profilePicture,
                               isHeadCameraActive: baby.camera2On,
                               isStaticCameraActive: baby.camera1On,
                               isHeadCameraConnecting: baby.isConnectingCamera2,
@@ -406,7 +403,7 @@ class _CameraScreenState extends State<CameraScreen> {
                       borderRadius:
                           const BorderRadius.vertical(top: Radius.circular(20)),
                       child: VideoStreamPlayer(
-                        streamUrl: 'http://10.0.2.2:5050/stream',
+                        streamUrl: 'http://${cam['ip']}:81/stream',
                         isActive: true,
                       ),
                     ),

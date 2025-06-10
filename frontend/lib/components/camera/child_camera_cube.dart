@@ -3,7 +3,7 @@ import 'dart:convert';
 
 class ChildCameraCube extends StatelessWidget {
   final String childName;
-  final String profilePicture;
+  final String? profilePicture;
   final bool isHeadCameraActive;
   final bool isStaticCameraActive;
   final bool isHeadCameraConnecting;
@@ -36,7 +36,12 @@ class ChildCameraCube extends StatelessWidget {
             // Baby Avatar
             CircleAvatar(
               radius: 36,
-              backgroundImage: AssetImage(profilePicture),
+              backgroundColor: Colors.blue[50],
+              backgroundImage:
+                  profilePicture != null ? AssetImage(profilePicture!) : null,
+              child: profilePicture == null
+                  ? Icon(Icons.child_care, color: Colors.grey, size: 36)
+                  : null,
             ),
             const SizedBox(height: 10),
             // Baby Name

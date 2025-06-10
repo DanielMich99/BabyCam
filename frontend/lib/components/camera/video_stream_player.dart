@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mjpeg/mjpeg.dart';
+import 'package:mjpeg_stream/mjpeg_stream.dart';
 
 class VideoStreamPlayer extends StatelessWidget {
   final String streamUrl;
@@ -25,14 +25,18 @@ class VideoStreamPlayer extends StatelessWidget {
         ),
       );
     }
+
     return AspectRatio(
       aspectRatio: 16 / 9,
-      child: Mjpeg(
-        stream: streamUrl,
-        isLive: true,
-        error: (context, error, stack) {
-          return Center(child: Text('Stream error: \$error'));
-        },
+      child: MJPEGStreamScreen(
+        streamUrl: streamUrl,
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        timeout: const Duration(seconds: 5),
+        showLiveIcon: false, // אפשר להפעיל אם רוצים בדיוק
+        showWatermark: false,
+        blurSensitiveContent: false,
       ),
     );
   }
