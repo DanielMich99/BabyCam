@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../services/auth_state.dart';
+import '../services/websocket_service.dart';
 import '../models/notification_item.dart';
 import '../models/baby_profile.dart';
 import '../components/home/home_header.dart';
@@ -23,50 +24,56 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   bool _isCameraOn = false;
   late Future<List<BabyProfile>> _babiesFuture;
-  final List<NotificationItem> _notifications = [
-    NotificationItem(
-      id: 1,
-      babyProfileId: 1,
-      classId: 1,
-      className: 'Tom stared at the Electrical Socket',
-      confidence: 0.95,
-      cameraType: 'Front Camera',
-      timestamp: DateTime.now(),
-    ),
-    NotificationItem(
-      id: 2,
-      babyProfileId: 1,
-      classId: 2,
-      className: 'Tom reached to the Electrical Socket',
-      confidence: 0.85,
-      cameraType: 'Front Camera',
-      timestamp: DateTime.now(),
-    ),
-    NotificationItem(
-      id: 3,
-      babyProfileId: 1,
-      classId: 3,
-      className: 'Tom touched the Electrical Socket',
-      confidence: 0.75,
-      cameraType: 'Front Camera',
-      timestamp: DateTime.now(),
-    ),
-    NotificationItem(
-      id: 4,
-      babyProfileId: 1,
-      classId: 4,
-      className: 'Tom reached to the front door',
-      confidence: 0.90,
-      cameraType: 'Front Camera',
-      timestamp: DateTime.now(),
-    ),
-  ];
+  final List<NotificationItem> _notifications = [];
+  final _websocketService = WebSocketService();
 
   @override
   void initState() {
     super.initState();
     _checkAuthentication();
     _babiesFuture = fetchBabies();
+    _websocketService.addDetectionListener(_handleDetection);
+  }
+
+  @override
+  void dispose() {
+    _websocketService.removeDetectionListener(_handleDetection);
+    super.dispose();
+  }
+
+  void _handleDetection(Map<String, dynamic> detection) {
+    if (!mounted) return;
+
+    setState(() {
+      _notifications.insert(
+          0,
+          NotificationItem(
+            id: detection['detection_id'] ??
+                DateTime.now().millisecondsSinceEpoch,
+            babyProfileId: detection['baby_profile_id'],
+            classId: detection['class_id'],
+            className: '${detection['class_name']} detected',
+            confidence: detection['confidence'].toDouble(),
+            cameraType: detection['camera_type'],
+            timestamp: DateTime.parse(detection['timestamp']),
+          ));
+    });
+
+    // Show a snackbar for new detections
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('New detection: ${detection['class_name']}'),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'Dismiss',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> _checkAuthentication() async {
@@ -98,6 +105,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _deleteNotification(int id) {
+    setState(() {
+      _notifications.removeWhere((notification) => notification.id == id);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -126,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
-              return Center(child: Text('Error: \\${snapshot.error}'));
+              return Center(child: Text('Error: ${snapshot.error}'));
             }
             final babies = snapshot.data ?? [];
             final Map<int, String> babyProfileNames = {
@@ -141,7 +154,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       setState(() => _isCameraOn = value),
                 ),
                 Expanded(
-                  child: NotificationList(notifications: _notifications),
+                  child: NotificationList(
+                    notifications: _notifications,
+                    onDelete: _deleteNotification,
+                  ),
                 ),
                 CustomBottomNav(
                   selectedIndex: _selectedIndex,

@@ -5,6 +5,7 @@ import '../models/baby_profile.dart';
 import '../components/camera/child_camera_cube.dart';
 import '../services/auth_state.dart';
 import '../services/camera_service.dart';
+import '../services/websocket_service.dart';
 import '../components/home/add_baby_dialog.dart';
 
 class CameraScreen extends StatefulWidget {
@@ -17,11 +18,78 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen> {
   late Future<List<BabyProfile>> _babiesFuture;
   bool _detectionSystemActive = false;
+  final _websocketService = WebSocketService();
 
   @override
   void initState() {
     super.initState();
     _babiesFuture = fetchBabies();
+    _websocketService.addDetectionListener(_handleDetection);
+    _websocketService.addDetectionListener(_handleCameraEvents);
+  }
+
+  @override
+  void dispose() {
+    _websocketService.removeDetectionListener(_handleDetection);
+    _websocketService.removeDetectionListener(_handleCameraEvents);
+    super.dispose();
+  }
+
+  void _handleDetection(Map<String, dynamic> detection) {
+    // Only show alerts if detection system is active
+    if (!_detectionSystemActive || !mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            'Detection: ${detection['type']} - ${detection['confidence']}%'),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'Dismiss',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
+  }
+
+  void _handleCameraEvents(Map<String, dynamic> event) {
+    if (!mounted) return;
+    final type = event['type'];
+    if (type == 'camera_connected') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Camera connected!'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } else if (type == 'camera_disconnected') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Camera disconnected!'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  void _toggleDetectionSystem() {
+    setState(() {
+      _detectionSystemActive = !_detectionSystemActive;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_detectionSystemActive
+            ? 'Detection System Activated'
+            : 'Detection System Deactivated'),
+      ),
+    );
   }
 
   Future<List<BabyProfile>> fetchBabies() async {
@@ -40,19 +108,6 @@ class _CameraScreenState extends State<CameraScreen> {
     } else {
       throw Exception('Failed to load babies');
     }
-  }
-
-  void _toggleDetectionSystem() {
-    setState(() {
-      _detectionSystemActive = !_detectionSystemActive;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_detectionSystemActive
-            ? 'Detection System Activated'
-            : 'Detection System Deactivated'),
-      ),
-    );
   }
 
   Future<void> _handleCameraConnection(

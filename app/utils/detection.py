@@ -222,6 +222,22 @@ async def notify_disconnection_and_stop(profile_id: int, camera_type: str, origi
                 }
             )
 
+            # שליחת התראה ב־Push Notification
+            user = db.query(User).filter_by(id=baby_profile.user_id).first()
+            if user:
+                tokens = [t.token for t in db.query(UserFCMToken).filter_by(user_id=user.id).all()]
+                if tokens:
+                    title = "📷 Camera Disconnected"
+                    body = f"{camera_type.replace('_', ' ').title()} for '{baby_profile.name}' has been disconnected"
+                    await asyncio.to_thread(
+                        send_push_notifications,
+                        tokens,
+                        title,
+                        body,
+                        config.FIREBASE_PROJECT_ID,
+                        config.GOOGLE_CREDENTIALS_PATH
+                    )
+
         await stop_detection_loop(profile_id, camera_type)
 
         active_sessions = [key for key in running_tasks.keys() if key.startswith(f"{profile_id}_")]
@@ -231,26 +247,6 @@ async def notify_disconnection_and_stop(profile_id: int, camera_type: str, origi
 
     except Exception as e:
         print(f"[ERROR] Failed to handle disconnection and stop detection: {e}")
-
-# פונקציה חדשה לשמירה של התמונות
-def save_detection_image(base_path, baby_profile_id, camera_type, class_name, class_id, result, frame):
-    folder = os.path.join(base_path, str(baby_profile_id), camera_type)
-    os.makedirs(folder, exist_ok=True)
-
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
-    filename = f"{timestamp}_class_id_{class_id}_{class_name}.jpg"
-    file_path = os.path.join(folder, filename)
-
-    for box in result.boxes:
-        if int(box.cls) == int(result.cls):
-            xyxy = box.xyxy[0].cpu().numpy().astype(int)
-            cv2.rectangle(frame, (xyxy[0], xyxy[1]), (xyxy[2], xyxy[3]), (0, 255, 0), 2)
-            cv2.putText(frame, class_name, (xyxy[0], xyxy[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-
-    cv2.imwrite(file_path, frame)
-
-    relative_path = os.path.join("detections", str(baby_profile_id), camera_type, filename)
-    return relative_path
 
 
 
