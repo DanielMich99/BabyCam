@@ -46,6 +46,8 @@ dependencies:
   path_provider: ^2.1.2
   video_thumbnail: ^0.5.3
   web_socket_channel: ^2.4.0
+  flutter_vlc_player: ^7.4.0
+  mjpeg: ^2.0.1
 
 dev_dependencies:
   flutter_test:

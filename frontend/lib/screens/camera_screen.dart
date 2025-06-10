@@ -7,6 +7,7 @@ import '../services/auth_state.dart';
 import '../services/camera_service.dart';
 import '../services/websocket_service.dart';
 import '../components/home/add_baby_dialog.dart';
+import '../components/camera/video_stream_player.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({Key? key}) : super(key: key);
@@ -243,20 +244,22 @@ class _CameraScreenState extends State<CameraScreen> {
           final babies = snapshot.data!;
           final List<Map<String, dynamic>> activeCameras = [];
           for (final baby in babies) {
-            if (baby.camera1On) {
+            if (baby.camera1On && baby.staticCameraIp != null) {
               activeCameras.add({
                 'name': baby.name,
                 'type': 'Static',
                 'profilePicture':
                     baby.profilePicture ?? 'assets/images/default_baby.jpg',
+                'ip': baby.staticCameraIp,
               });
             }
-            if (baby.camera2On) {
+            if (baby.camera2On && baby.headCameraIp != null) {
               activeCameras.add({
                 'name': baby.name,
                 'type': 'Head',
                 'profilePicture':
                     baby.profilePicture ?? 'assets/images/default_baby.jpg',
+                'ip': baby.headCameraIp,
               });
             }
           }
@@ -397,27 +400,49 @@ class _CameraScreenState extends State<CameraScreen> {
                 color: Colors.blueGrey[50],
               ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundImage: AssetImage(cam['profilePicture'] ??
-                        'assets/images/default_baby.jpg'),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(20)),
+                      child: VideoStreamPlayer(
+                        streamUrl: 'http://10.0.2.2:5050/stream',
+                        isActive: true,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    cam['name'],
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundImage: AssetImage(cam['profilePicture'] ??
+                              'assets/images/default_baby.jpg'),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              cam['name'],
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '${cam['type']} Camera',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.blueGrey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${cam['type']} Camera',
-                    style:
-                        const TextStyle(fontSize: 14, color: Colors.blueGrey),
-                  ),
-                  const SizedBox(height: 16),
-                  const Icon(Icons.videocam, size: 40, color: Colors.blueGrey),
                 ],
               ),
             ),
