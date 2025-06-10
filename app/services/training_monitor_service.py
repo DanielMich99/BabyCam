@@ -105,13 +105,13 @@ def start_monitoring_thread():
     results[0].GetContentFile(local_path)
     return True'''
 
-def check_and_download_model(user_id: int, camera_type: str, start_time: float) -> bool:
-    file_name = f"{user_id}_{camera_type}_model.pt"
-    local_path = os.path.join("uploads", "training_data", str(user_id), camera_type, file_name)
+def check_and_download_model(baby_profile_id: int, camera_type: str, start_time: float) -> bool:
+    file_name = f"{baby_profile_id}_{camera_type}_model.pt"
+    local_path = os.path.join("uploads", "training_data", str(baby_profile_id), camera_type, file_name)
 
     # מוודא שהמבנה של התיקיות קיים בדרייב
     root_folder_id = drive_service.get_or_create_folder("babycam_data")
-    profile_folder_id = drive_service.get_or_create_folder(str(user_id), root_folder_id)
+    profile_folder_id = drive_service.get_or_create_folder(str(baby_profile_id), root_folder_id)
     model_folder_id = drive_service.get_or_create_folder(camera_type, profile_folder_id)
 
     # בודק אם קובץ קיים עם createdTime

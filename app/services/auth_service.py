@@ -93,13 +93,13 @@ def verify_jwt_token(token: str):
     except jwt.PyJWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     
-def update_fcm_token_by_username(db: Session, username: str, token: str):
+'''def update_fcm_token_by_username(db: Session, username: str, token: str):
     user = db.query(User).filter(User.username == username).first()
     if user:
         user.fcm_token = token
         db.commit()
     else:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found")'''
     
 def add_fcm_token_to_user(db: Session, username: str, token: str):
     user = db.query(User).filter(User.username == username).first()
@@ -115,8 +115,8 @@ def add_fcm_token_to_user(db: Session, username: str, token: str):
     db.add(new_token)
     db.commit()
 
-def delete_fcm_token(token: str, db: Session, current_user: dict):
-    username = current_user["username"]
+def delete_fcm_token(token: str, db: Session, current_user: User):
+    username = current_user.username
     user = db.query(User).filter(User.username == username).first()
 
     if not user:

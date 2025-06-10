@@ -4,9 +4,10 @@ from sqlalchemy.orm import Session
 from app.models.baby_profile_model import BabyProfile
 from app.utils.detection import start_detection_loop, stop_detection_loop
 from app.schemas.monitoring_schemas import CameraTuple
+from app.models.user_model import User
 from typing import List
 
-async def start_monitoring_service(camera_profiles: List[CameraTuple], db: Session, request: Request):
+async def start_monitoring_service(camera_profiles: List[CameraTuple], current_user: User, db: Session, request: Request):
     active_sessions = []
     origin = request.headers.get("origin") or "http://localhost:3000"
 
@@ -24,7 +25,7 @@ async def start_monitoring_service(camera_profiles: List[CameraTuple], db: Sessi
         if not os.path.exists(model_path):
             raise HTTPException(status_code=404, detail=f"Model file not found for {item.camera_type} on profile {item.baby_profile_id}")
 
-        session = await start_detection_loop(profile.id, item.camera_type, ip, model_path, db, camera_profiles, origin)
+        session = await start_detection_loop(profile.id, item.camera_type, ip, current_user, model_path, db, camera_profiles, origin)
         active_sessions.append(session)
 
     return {"status": "monitoring_started", "sessions": len(active_sessions)}

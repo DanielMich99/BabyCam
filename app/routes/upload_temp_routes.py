@@ -1,11 +1,12 @@
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, Depends
 from typing import List
 import os
+from app.services.auth_service import get_current_user
 
 router = APIRouter()
 
 @router.post("/upload-to-temp")
-async def upload_to_temp(files: List[UploadFile] = File(...)):
+async def upload_to_temp(files: List[UploadFile] = File(...), current_user=Depends(get_current_user)):
     temp_dir = os.path.join("uploads", "temp")
     os.makedirs(temp_dir, exist_ok=True)
     saved_files = []

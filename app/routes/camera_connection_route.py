@@ -1,9 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Request
 from app.controllers.camera_connection_controller import wait_for_camera_connection, disconnect_camera_controller, reset_user_cameras_controller
 from app.services.camera_connection_service import camera_manager
 from pydantic import BaseModel
-from fastapi import Request
-from fastapi import Body
+from app.services.auth_service import get_current_user
 
 router = APIRouter()
 
@@ -16,7 +15,7 @@ class ResetUserCamerasRequest(BaseModel):
 
 #קישור מצלמה למודל של פרופיל תינוק
 @router.post("/camera/connect")
-async def connect_camera(request: CameraConnectionRequest):
+async def connect_camera(request: CameraConnectionRequest, current_user=Depends(get_current_user)):
     success = await wait_for_camera_connection(request.baby_profile_id, request.camera_type)
     if success:
         return {"status": "connected"}
@@ -24,7 +23,7 @@ async def connect_camera(request: CameraConnectionRequest):
 
 #ניתוק מצלמה ממודל של פרופיל תינוק
 @router.post("/camera/disconnect")
-def disconnect_camera_endpoint(request: CameraConnectionRequest):
+def disconnect_camera_endpoint(request: CameraConnectionRequest, current_user=Depends(get_current_user)):
     success = disconnect_camera_controller(request.baby_profile_id, request.camera_type)
     if success:
         return {"status": "disconnected"}
@@ -32,7 +31,7 @@ def disconnect_camera_endpoint(request: CameraConnectionRequest):
 
 #ניתוק שיוך כל המודלים של יוזר מסוים ממצלמות
 @router.post("/camera/reset_user_cameras")
-def reset_user_cameras(request: ResetUserCamerasRequest):
+def reset_user_cameras(request: ResetUserCamerasRequest, current_user=Depends(get_current_user)):
     updated = reset_user_cameras_controller(request.user_id)
     if updated == 0:
         raise HTTPException(status_code=404, detail="No baby profiles found for this user")
