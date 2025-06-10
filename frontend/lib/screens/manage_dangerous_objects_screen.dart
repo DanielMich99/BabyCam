@@ -7,6 +7,7 @@ import 'dangerous_object_list_dialog.dart';
 import '../services/user_service.dart';
 import 'dart:convert';
 import '../services/training_service.dart';
+import '../services/websocket_service.dart';
 
 class ManageDangerousObjectsScreen extends StatefulWidget {
   final int babyProfileId;
@@ -26,6 +27,38 @@ class _ManageDangerousObjectsScreenState
   final List<Map<String, dynamic>> _pendingAdditions = [];
   final List<Map<String, dynamic>> _pendingUpdates = [];
   final List<Map<String, dynamic>> _pendingRiskLevelUpdates = [];
+  final _websocketService = WebSocketService();
+
+  @override
+  void initState() {
+    super.initState();
+    _websocketService.addDetectionListener(_handleWebSocketEvent);
+  }
+
+  @override
+  void dispose() {
+    _websocketService.removeDetectionListener(_handleWebSocketEvent);
+    super.dispose();
+  }
+
+  void _handleWebSocketEvent(Map<String, dynamic> event) {
+    if (!mounted) return;
+    if (event['type'] == 'model_training_completed') {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Model Training'),
+          content: const Text('Model training completed! New model is ready.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
 
   Future<void> _openDangerousObjectListDialog(BuildContext context) async {
     final result = await Navigator.of(context).push(
