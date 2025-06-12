@@ -6,6 +6,7 @@ from app.utils.file_utils import delete_class_data, add_class_data, append_to_cl
 from app.db_utils.class_utils import update_db_classes, insert_new_classes, delete_db_classes
 from app.utils.upload_to_drive import zip_dataset, cleanup_zip, upload_to_drive
 from app.services import training_monitor_service
+from app.models.user_model import User
 import requests
 import time
 from pydrive.auth import GoogleAuth
@@ -47,23 +48,23 @@ def should_train_or_finetune(request):
 
     return "none"
 
-def train_model_remotely(user_id: int, camera_type: str, strategy: str):
+def train_model_remotely(baby_profile_id: int, camera_type: str, strategy: str):
     if strategy == "none":
         return {"message": "No training required."}
 
     # Step 1: Create zip
-    zip_path = zip_dataset(user_id, camera_type)
+    zip_path = zip_dataset(baby_profile_id, camera_type)
 
     # Step 2: Upload to Google Drive
-    upload_to_drive(zip_path, user_id, camera_type)
+    upload_to_drive(zip_path, baby_profile_id, camera_type)
 
     # Step 3: clean zip
-    cleanup_zip(user_id, camera_type)
+    cleanup_zip(baby_profile_id, camera_type)
 
     # Step 4: Trigger Cloud Run job via Cloud Function
     endpoint = "https://us-central1-babycam-colab-deploy.cloudfunctions.net/trigger_colab_training"
     payload = {
-        "user_id": user_id,
+        "user_id": baby_profile_id,
         "camera_type": camera_type,
         "fine_tune": (strategy == "finetune")
     }
@@ -75,7 +76,7 @@ def train_model_remotely(user_id: int, camera_type: str, strategy: str):
     except Exception as e:
         return {"error": str(e)}
 
-def process_model_update(request: ModelUpdateRequest, db):
+def process_model_update(request: ModelUpdateRequest, current_user: User, db):
     model_folder = os.path.join("uploads", "training_data", str(request.baby_profile_id), request.model_type.replace("_model", ""))
     
     
@@ -113,8 +114,9 @@ def process_model_update(request: ModelUpdateRequest, db):
     train_result = train_model_remotely(request.baby_profile_id, request.model_type.replace("_model", ""), strategy)
     
     if strategy != "none":
+        # user = db.query(User).filter_by(id=request.baby_profile_id).first()
         training_monitor_service.register_pending_training(
-            request.baby_profile_id,
+            current_user.id,
             request.baby_profile_id,
             request.model_type.replace("_model", "")
         )

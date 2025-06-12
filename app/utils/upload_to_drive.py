@@ -6,9 +6,9 @@ from app.utils.google_drive_service import GoogleDriveService
 
 drive_service = GoogleDriveService()
 
-def zip_dataset(user_id: int, camera_type: str) -> str:
-    base_dir = f"uploads/training_data/{user_id}/{camera_type}"
-    zip_path = f"{user_id}_{camera_type}.zip"
+def zip_dataset(baby_profile_id: int, camera_type: str) -> str:
+    base_dir = f"uploads/training_data/{baby_profile_id}/{camera_type}"
+    zip_path = f"{baby_profile_id}_{camera_type}.zip"
 
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
         for root, _, files in os.walk(base_dir):
@@ -31,8 +31,8 @@ def zip_dataset(user_id: int, camera_type: str) -> str:
     print(f"[ZIP] Created {zip_path}")
     return zip_path
 
-def cleanup_zip(user_id: int, camera_type: str):
-    zip_path = f"{user_id}_{camera_type}.zip"
+def cleanup_zip(baby_profile_id: int, camera_type: str):
+    zip_path = f"{baby_profile_id}_{camera_type}.zip"
     if os.path.exists(zip_path):
         os.remove(zip_path)
         print(f"[CLEANUP] Deleted local zip file: {zip_path}")
@@ -91,8 +91,8 @@ def upload_to_drive(local_zip_path: str, baby_profile_id: int, model_type: str, 
     
 # דוגמה לשימוש
 if __name__ == "__main__":
-    user_id = 123
+    baby_profile_id = 123
     camera_type = "head_camera"
 
-    zip_path = zip_dataset(user_id, camera_type)
+    zip_path = zip_dataset(baby_profile_id, camera_type)
     upload_to_drive(zip_path)

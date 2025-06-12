@@ -16,7 +16,7 @@ from app.utils.websocket_broadcast import broadcast_detection
 running_tasks = {}
 last_detection_time = {}  # key: profile_camera_class, value: datetime
 
-async def start_detection_loop(profile_id: int, camera_type: str, ip: str, model_path: str, db, camera_profiles, origin: str):
+async def start_detection_loop(profile_id: int, camera_type: str, ip: str, current_user: User, model_path: str, db, camera_profiles, origin: str):
     model = YOLO(model_path)
     stream_url = f"http://{ip}:81/stream"
     should_stop = False
@@ -28,6 +28,8 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, model
         max_read_fail_count = 10
         max_open_fail_count = 3 
         cap = cv2.VideoCapture(stream_url)
+        baby_profile = db.query(BabyProfile).filter_by(id=profile_id).first()
+        #user = db.query(User).filter_by(id=baby_profile.user_id).first()
         try:
             while cap.isOpened():
                 try:
@@ -47,7 +49,7 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, model
                                 continue
                             else:
                                 print(f"[DISCONNECTED] Camera for Profile {profile_id} - {camera_type}")
-                                await notify_disconnection_and_stop(profile_id, camera_type, origin, camera_profiles, db)
+                                await notify_disconnection_and_stop(profile_id, camera_type, current_user, origin, camera_profiles, db)
                                 break
 
                         await asyncio.sleep(0.5)
@@ -59,8 +61,8 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, model
                     results = model(frame)[0]
                     now = datetime.utcnow()
 
-                    baby_profile = db.query(BabyProfile).filter_by(id=profile_id).first()
-                    user = db.query(User).filter_by(id=baby_profile.user_id).first()
+                    # baby_profile = db.query(BabyProfile).filter_by(id=profile_id).first()
+                    # user = db.query(User).filter_by(id=baby_profile.user_id).first()
 
                     for result in results.boxes:
                         if result.conf > 0.1:
@@ -112,9 +114,9 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, model
                                 )
 
                                 # שליחת push notifications
-                                if user:
+                                if current_user:
                                     try:
-                                        tokens = [t.token for t in db.query(UserFCMToken).filter_by(user_id=user.id).all()]
+                                        tokens = [t.token for t in db.query(UserFCMToken).filter_by(user_id=current_user.id).all()]
                                         if tokens:
                                             message = f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level}"
                                             await asyncio.to_thread(
@@ -205,7 +207,7 @@ async def stop_detection_loop(profile_id: int, camera_type: str):
     except Exception as e:
         print(f"[ERROR] Failed to handle disconnection and stop monitoring: {e}")'''
 
-async def notify_disconnection_and_stop(profile_id: int, camera_type: str, origin: str, camera_profiles, db):
+async def notify_disconnection_and_stop(profile_id: int, camera_type: str, current_user: User, origin: str, camera_profiles, db):
     try:
         from app.services.monitoring_service import stop_monitoring_service
 
@@ -223,9 +225,9 @@ async def notify_disconnection_and_stop(profile_id: int, camera_type: str, origi
             )
 
             # שליחת התראה ב־Push Notification
-            user = db.query(User).filter_by(id=baby_profile.user_id).first()
-            if user:
-                tokens = [t.token for t in db.query(UserFCMToken).filter_by(user_id=user.id).all()]
+            #user = db.query(User).filter_by(id=baby_profile.user_id).first()
+            if current_user:
+                tokens = [t.token for t in db.query(UserFCMToken).filter_by(user_id=current_user.id).all()]
                 if tokens:
                     title = "📷 Camera Disconnected"
                     body = f"{camera_type.replace('_', ' ').title()} for '{baby_profile.name}' has been disconnected"

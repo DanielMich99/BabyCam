@@ -5,11 +5,11 @@ from app.services.auth_service import (
     register_user as auth_register_user,
     create_refresh_token,
     authenticate_user,
-    update_fcm_token_by_username,
     add_fcm_token_to_user,
     delete_fcm_token
 )
 from app.schemas.auth_schemas import LoginRequest
+from app.models.user_model import User
 
 def register_user(db: Session, username: str, password: str, email: str):
     return auth_register_user(db, username, password, email)
@@ -25,11 +25,11 @@ def refresh_access_token(refresh_token: str):
     update_fcm_token_by_username(db, username, token)
     return {"message": "FCM token saved successfully"}'''
 
-def save_fcm_token(token: str, db: Session, current_user: dict):
-    username = current_user["username"]
+def save_fcm_token(token: str, db: Session, current_user: User):
+    username = current_user.username
     add_fcm_token_to_user(db, username, token)
     return {"message": "FCM token saved successfully"}
 
-def delete_fcm_token_controller(token: str, db: Session, current_user: dict):
+def delete_fcm_token_controller(token: str, db: Session, current_user: User):
     return delete_fcm_token(token, db, current_user)
 
