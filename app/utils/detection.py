@@ -250,25 +250,5 @@ async def notify_disconnection_and_stop(profile_id: int, camera_type: str, curre
     except Exception as e:
         print(f"[ERROR] Failed to handle disconnection and stop detection: {e}")
 
-# פונקציה חדשה לשמירה של התמונות
-def save_detection_image(base_path, baby_profile_id, camera_type, class_name, class_id, result, frame):
-    folder = os.path.join(base_path, str(baby_profile_id), camera_type)
-    os.makedirs(folder, exist_ok=True)
-
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
-    filename = f"{timestamp}_class_id_{class_id}_{class_name}.jpg"
-    file_path = os.path.join(folder, filename)
-
-    for box in result.boxes:
-        if int(box.cls) == int(result.cls):
-            xyxy = box.xyxy[0].cpu().numpy().astype(int)
-            cv2.rectangle(frame, (xyxy[0], xyxy[1]), (xyxy[2], xyxy[3]), (0, 255, 0), 2)
-            cv2.putText(frame, class_name, (xyxy[0], xyxy[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-
-    cv2.imwrite(file_path, frame)
-
-    relative_path = os.path.join("detections", str(baby_profile_id), camera_type, filename)
-    return relative_path
-
 
 

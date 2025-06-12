@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_state.dart';
+import '../models/baby_profile.dart';
 
 class CameraService {
   static const String baseUrl = 'http://10.0.2.2:8000';
@@ -80,5 +81,31 @@ class CameraService {
     } else {
       throw Exception('Failed to reset cameras');
     }
+  }
+
+  // New method to handle camera connection/disconnection
+  static Future<BabyProfile> handleCameraConnection(
+      BabyProfile baby, String cameraType) async {
+    final isHeadCamera = cameraType == 'head_camera';
+    if ((isHeadCamera && baby.camera2On) || (!isHeadCamera && baby.camera1On)) {
+      await disconnectCamera(baby.id, cameraType);
+      return baby.copyWith(
+        camera1On: isHeadCamera ? baby.camera1On : false,
+        camera2On: isHeadCamera ? false : baby.camera2On,
+      );
+    } else {
+      await connectCamera(baby.id, cameraType);
+      return baby.copyWith(
+        camera1On: !isHeadCamera,
+        camera2On: isHeadCamera,
+        isConnectingCamera1: false,
+        isConnectingCamera2: false,
+      );
+    }
+  }
+
+  // New method to reset all cameras for a user
+  static Future<int> resetAllCameras(int userId) async {
+    return resetUserCameras(userId);
   }
 }
