@@ -39,6 +39,9 @@ def should_train_or_finetune(request):
         item.files.images or item.files.labels
         for item in request.updated_classes
     )
+    
+    print(has_new_data)
+    print(has_updated_data)
 
     if has_new_data or has_updated_data:
         return "finetune"
@@ -75,6 +78,7 @@ def train_model_remotely(baby_profile_id: int, camera_type: str, strategy: str):
 
 def process_model_update(request: ModelUpdateRequest, current_user: User, db):
     model_folder = os.path.join("uploads", "training_data", str(request.baby_profile_id), request.model_type.replace("_model", ""))
+    
     
     # 1. Delete
     for class_name in request.deleted_classes:
@@ -116,6 +120,7 @@ def process_model_update(request: ModelUpdateRequest, current_user: User, db):
             request.baby_profile_id,
             request.model_type.replace("_model", "")
         )
+        
 
     return {
     "message": "Model update completed.",

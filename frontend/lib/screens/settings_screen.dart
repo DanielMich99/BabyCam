@@ -4,6 +4,10 @@ import '../components/settings/system_settings_tile.dart';
 import '../components/settings/settings_appbar_title.dart';
 import '../screens/home_screen.dart';
 import '../screens/alerts_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../services/auth_state.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -18,8 +22,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String healthCondition = 'None';
   final List<String> healthConditions = ['None', 'Allergy', 'Asthma', 'Other'];
 
+  final storage = FlutterSecureStorage();
+
   void _handleLogout() {
     Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  Future<void> _updateUser({String? email, String? password}) async {
+    final url = Uri.parse('http://10.0.2.2:8000/users/me');
+    final token = await _getToken(); // Implement this to get JWT
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+    final body = jsonEncode({
+      if (email != null) 'email': email,
+      if (password != null) 'password': password,
+    });
+    try {
+      final response = await http.put(url, headers: headers, body: body);
+      if (response.statusCode == 200) {
+        _showSnackBar('Update successful!');
+      } else {
+        _showSnackBar('Update failed: \\${response.body}');
+      }
+    } catch (e) {
+      _showSnackBar('Error: $e');
+    }
+  }
+
+  Future<String?> _getToken() async {
+    return await AuthState.getAuthToken();
   }
 
   @override
@@ -29,11 +62,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.home),
-          onPressed: () => Navigator.pop(context),
+        title: const Text(
+          'Settings',
+          style: TextStyle(
+            color: Colors.blue,
+            fontWeight: FontWeight.bold,
+            fontSize: 28,
+            letterSpacing: 1.2,
+          ),
         ),
-        title: const SettingsAppBarTitle(),
         centerTitle: true,
         toolbarHeight: 90,
       ),
@@ -41,48 +78,130 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              AccountSettingsTile(
-                username: babyName,
-                onUsernameChanged: (value) => setState(() => babyName = value),
-                onLogout: _handleLogout,
+              // AccountSettingsTile(
+              //   username: babyName,
+              //   onUsernameChanged: (value) => setState(() => babyName = value),
+              //   onLogout: _handleLogout,
+              // ),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.email_outlined),
+                      label: const Text('Change Email'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.blue,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      onPressed: () => _showChangeEmailDialog(context),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.lock_outline),
+                      label: const Text('Change Password'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.blue,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      onPressed: () => _showChangePasswordDialog(context),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 3,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.camera_alt), label: 'Camera'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.notifications), label: 'Alerts'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.settings), label: 'Settings'),
+    );
+  }
+
+  void _showChangeEmailDialog(BuildContext context) {
+    final TextEditingController emailController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change Email'),
+        content: TextField(
+          controller: emailController,
+          decoration: const InputDecoration(labelText: 'New Email'),
+          keyboardType: TextInputType.emailAddress,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _updateUser(email: emailController.text);
+            },
+            child: const Text('Save'),
+          ),
         ],
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => HomeScreen(username: babyName)),
-            );
-          } else if (index == 2) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => AlertsScreen(notifications: [])),
-            );
-          } else if (index == 3) {
-            // Already on settings, do nothing
-          }
-        },
       ),
+    );
+  }
+
+  void _showChangePasswordDialog(BuildContext context) {
+    final TextEditingController passwordController = TextEditingController();
+    final TextEditingController confirmController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change Password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: passwordController,
+              decoration: const InputDecoration(labelText: 'New Password'),
+              obscureText: true,
+            ),
+            TextField(
+              controller: confirmController,
+              decoration: const InputDecoration(labelText: 'Confirm Password'),
+              obscureText: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (passwordController.text != confirmController.text) {
+                _showSnackBar('Passwords do not match!');
+                return;
+              }
+              Navigator.of(context).pop();
+              await _updateUser(password: passwordController.text);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 }

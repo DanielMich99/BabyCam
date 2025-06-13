@@ -41,7 +41,6 @@ passlib==1.7.4
 pillow==11.2.1
 pluggy==1.5.0
 psutil==7.0.0
-psycopg2==2.9.10
 psycopg2-binary==2.9.10
 py-cpuinfo==9.0.0
 pycparser==2.22
@@ -73,4 +72,6 @@ tzdata==2025.2
 ultralytics==8.3.117
 ultralytics-thop==2.0.14
 urllib3==2.3.0
-uvicorn==0.34.0
+uvicorn[standard]==0.34.0
+watchdog==3.0.0
+websockets==12.0

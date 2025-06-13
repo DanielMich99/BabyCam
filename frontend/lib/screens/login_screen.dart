@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import '../services/auth_service.dart';
 import '../services/auth_state.dart';
+import '../services/websocket_service.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
 import '../components/auth/logo_header.dart';
@@ -22,6 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authService = AuthService();
+  final _websocketService = WebSocketService();
   bool _isLoading = false;
 
   Future<void> _handleGoogleSignIn() async {
@@ -63,8 +65,13 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         // Save authentication state
-        await AuthState.saveAuthToken(response['access_token']);
+        final token = response['access_token'].toString().trim();
+        await AuthState.saveAuthToken(token);
         await AuthState.saveUsername(_usernameController.text);
+
+        // Initialize WebSocket connection
+        print('Initializing WebSocket with token: $token');
+        await _websocketService.initialize('10.0.2.2:8000', token);
 
         if (mounted) {
           // Login successful

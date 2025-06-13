@@ -444,6 +444,7 @@ async def notify_disconnection_and_stop(profile_id: int, camera_type: str, curre
     except Exception as e:
         print(f"[ERROR] Failed to handle disconnection and stop detection: {e}")
 
+
 # פונקציה חדשה לשמירה של התמונות
 def save_detection_image(base_path, baby_profile_id, camera_type, class_name, class_id, xyxy_tensor, confidence, frame):
     folder = os.path.join(base_path, str(baby_profile_id), camera_type)
@@ -469,6 +470,7 @@ def save_detection_image(base_path, baby_profile_id, camera_type, class_name, cl
     # compute position so text is inside the box (top-left corner + padding)
     text_x = x1 + 5
     text_y = y1 + text_size[1] + 5  # shift down a bit to fit inside
+
 
     # draw filled background for visibility
     cv2.rectangle(frame, (x1, y1), (x1 + text_size[0] + 10, y1 + text_size[1] + 10), (0, 255, 0), cv2.FILLED)

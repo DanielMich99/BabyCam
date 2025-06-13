@@ -1,28 +1,67 @@
 import 'package:flutter/material.dart';
 import '../models/notification_item.dart';
-import '../components/alerts/notification_list.dart';
+import '../services/detection_service.dart';
 
 class AlertsScreen extends StatefulWidget {
-  final List<NotificationItem> notifications;
-  const AlertsScreen({Key? key, required this.notifications}) : super(key: key);
+  final DetectionService detectionService;
+  final Map<int, String> babyProfileNames;
+
+  const AlertsScreen({
+    Key? key,
+    required this.detectionService,
+    required this.babyProfileNames,
+  }) : super(key: key);
 
   @override
   State<AlertsScreen> createState() => _AlertsScreenState();
 }
 
 class _AlertsScreenState extends State<AlertsScreen> {
-  late List<NotificationItem> _notifications;
+  List<NotificationItem> _notifications = [];
+  bool _isLoading = true;
+  String? _error;
+  String _sortBy = 'time'; // 'time' or 'name'
 
   @override
   void initState() {
     super.initState();
-    _notifications = List.from(widget.notifications);
+    _fetchNotifications();
   }
 
-  void _deleteNotification(int index) {
-    setState(() {
-      _notifications.removeAt(index);
-    });
+  Future<void> _fetchNotifications() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      final notifications =
+          await widget.detectionService.getMyDetectionResults();
+      setState(() {
+        _notifications = notifications;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Error: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _deleteNotification(int id) async {
+    try {
+      await widget.detectionService.deleteDetectionResult(id);
+      setState(() {
+        _notifications.removeWhere((notification) => notification.id == id);
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete notification: $e')),
+        );
+      }
+    }
   }
 
   void _toggleViewed(int index) {
@@ -43,75 +82,191 @@ class _AlertsScreenState extends State<AlertsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(_error!, style: const TextStyle(color: Colors.red)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _fetchNotifications,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Sort notifications based on _sortBy
+    List<NotificationItem> sortedNotifications = List.from(_notifications);
+    if (_sortBy == 'name') {
+      sortedNotifications.sort((a, b) {
+        final nameA = widget.babyProfileNames[a.babyProfileId] ?? '';
+        final nameB = widget.babyProfileNames[b.babyProfileId] ?? '';
+        return nameA.compareTo(nameB);
+      });
+    } else {
+      // Default: sort by time, newest first
+      sortedNotifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Alerts'),
+        title: const Text('Detection Alerts'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchNotifications,
+          ),
+        ],
       ),
-      body: ListView.builder(
-        itemCount: _notifications.length,
-        itemBuilder: (context, index) {
-          final notification = _notifications[index];
-          return Dismissible(
-            key: ValueKey(
-                notification.time.toIso8601String() + notification.message),
-            direction: DismissDirection.endToStart,
-            background: Container(
-              color: Colors.red,
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: const Icon(Icons.delete, color: Colors.white),
-            ),
-            onDismissed: (direction) => _deleteNotification(index),
-            child: Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ListTile(
-                leading:
-                    const Icon(Icons.warning_amber_rounded, color: Colors.red),
-                title: Text(notification.message,
-                    style: const TextStyle(fontSize: 14)),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '${notification.time.hour}:${notification.time.minute.toString().padLeft(2, '0')}:${notification.time.second.toString().padLeft(2, '0')}',
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: Icon(
-                        notification.isViewed
-                            ? Icons.visibility
-                            : Icons.visibility_outlined,
-                        color:
-                            notification.isViewed ? Colors.blue : Colors.grey,
-                      ),
-                      tooltip: notification.isViewed
-                          ? 'Unmark as viewed'
-                          : 'Mark as viewed',
-                      onPressed: () => _toggleViewed(index),
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        notification.isHandled
-                            ? Icons.check_circle
-                            : Icons.radio_button_unchecked,
-                        color:
-                            notification.isHandled ? Colors.green : Colors.grey,
-                      ),
-                      tooltip: notification.isHandled
-                          ? 'Unmark as handled'
-                          : 'Mark as handled',
-                      onPressed: () => _toggleHandled(index),
-                    ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                const Text('Sort by:'),
+                const SizedBox(width: 8),
+                DropdownButton<String>(
+                  value: _sortBy,
+                  items: const [
+                    DropdownMenuItem(
+                        value: 'time', child: Text('Time (Newest)')),
+                    DropdownMenuItem(value: 'name', child: Text('Baby Name')),
                   ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _sortBy = value;
+                      });
+                    }
+                  },
                 ),
-              ),
+              ],
             ),
-          );
-        },
+          ),
+          Expanded(
+            child: sortedNotifications.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No detection alerts yet',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: sortedNotifications.length,
+                    itemBuilder: (context, index) {
+                      final notification = sortedNotifications[index];
+                      final babyName =
+                          widget.babyProfileNames[notification.babyProfileId] ??
+                              'Unknown';
+                      return Dismissible(
+                        key: ValueKey(notification.id),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        onDismissed: (direction) =>
+                            _deleteNotification(notification.id),
+                        child: Card(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  babyName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: Colors.blueGrey,
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.warning_amber_rounded,
+                                      color: Colors.red.shade700,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        notification.className,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '${(notification.confidence * 100).toStringAsFixed(1)}%',
+                                      style: TextStyle(
+                                        color: notification.confidence > 0.8
+                                            ? Colors.red
+                                            : Colors.orange,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.videocam,
+                                      size: 16,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      notification.cameraType,
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      '${notification.timestamp.hour}:${notification.timestamp.minute.toString().padLeft(2, '0')}:${notification.timestamp.second.toString().padLeft(2, '0')}',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }
