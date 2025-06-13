@@ -6,6 +6,8 @@ class UserBase(BaseModel):
     email: EmailStr
 
 class UserCreate(UserBase):
+    username: str
+    email: EmailStr
     password: str  # הסיסמה תגיע כרגיל, תדע שהיא לא hashed כאן
 
 class UserUpdate(BaseModel):

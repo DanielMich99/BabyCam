@@ -7,8 +7,6 @@ from typing import Dict, Tuple, Optional
 from sqlalchemy.orm import Session
 from app.models.baby_profile_model import BabyProfile
 from database.database import SessionLocal
-from app.utils.esp32_stream_buffer import ESP32StreamBuffer
-from app.utils.detection import stream_buffers  # ודא שזה import נכון לפי איפה שזה מוגדר אצלך
 
 
 class CameraConnectionManager:
@@ -26,17 +24,6 @@ class CameraConnectionManager:
         for key in self._waiting_connections:
             if self._waiting_connections[key] is None:
                 self._waiting_connections[key] = ip
-                # יצירת stream buffer באופן מיידי
-                # baby_profile_id, camera_type = key.split(":")
-                # buffer_key = f"{baby_profile_id}_{camera_type}"
-                # if buffer_key not in stream_buffers:
-                #     print(ip)
-                #     stream_url = f"http://{ip}/stream"
-                #     #stream_url = f"http://{ip}:8081/stream"
-                #     stream_buffer = ESP32StreamBuffer(stream_url)
-                #     stream_buffer.start()
-                #     stream_buffers[buffer_key] = stream_buffer
-                #     print(f"🎥 [BUFFER] נוצר buffer ל-{buffer_key}")
                 return key  # נחזיר את הקישור שמצאנו
         return None
 
@@ -53,7 +40,7 @@ class CameraConnectionManager:
                     del self._waiting_connections[key]
                     return True
                 else:
-                    print(f"Camera at {ip} not responding.")    
+                    print(f"Camera at {ip} not responding.")
             await asyncio.sleep(1)
 
         del self._waiting_connections[key]

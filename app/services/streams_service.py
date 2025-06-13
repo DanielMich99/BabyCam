@@ -19,7 +19,7 @@ def get_streams(db: Session, stream_requests: List[StreamRequestItem]) -> List[S
             ip = baby_profile.static_camera_ip
 
         if ip:
-            stream_url = f"http://{ip}:81/stream"
+            stream_url = f"http://{ip}/stream"
             response.append(StreamResponseItem(
                 baby_profile_id=item.baby_profile_id,
                 model_type=item.model_type,
