@@ -3,6 +3,10 @@ from app.controllers.camera_connection_controller import wait_for_camera_connect
 from app.services.camera_connection_service import camera_manager
 from pydantic import BaseModel
 from app.services.auth_service import get_current_user
+from sqlalchemy.orm import Session
+from database.database import get_db
+from app.models.baby_profile_model import BabyProfile
+from app.models.user_model import User
 
 router = APIRouter()
 
@@ -15,7 +19,10 @@ class ResetUserCamerasRequest(BaseModel):
 
 #קישור מצלמה למודל של פרופיל תינוק
 @router.post("/camera/connect")
-async def connect_camera(request: CameraConnectionRequest, current_user=Depends(get_current_user)):
+async def connect_camera(request: CameraConnectionRequest, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    baby_profile = db.query(BabyProfile).filter_by(id=request.baby_profile_id, user_id=current_user.id).first()
+    if not baby_profile:
+        raise HTTPException(status_code=403, detail=f"Unauthorized access to baby_profile_id {request.baby_profile_id}")
     success = await wait_for_camera_connection(request.baby_profile_id, request.camera_type)
     if success:
         return {"status": "connected"}
@@ -23,7 +30,10 @@ async def connect_camera(request: CameraConnectionRequest, current_user=Depends(
 
 #ניתוק מצלמה ממודל של פרופיל תינוק
 @router.post("/camera/disconnect")
-def disconnect_camera_endpoint(request: CameraConnectionRequest, current_user=Depends(get_current_user)):
+def disconnect_camera_endpoint(request: CameraConnectionRequest, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    baby_profile = db.query(BabyProfile).filter_by(id=request.baby_profile_id, user_id=current_user.id).first()
+    if not baby_profile:
+        raise HTTPException(status_code=403, detail=f"Unauthorized access to baby_profile_id {request.baby_profile_id}")
     success = disconnect_camera_controller(request.baby_profile_id, request.camera_type)
     if success:
         return {"status": "disconnected"}
@@ -31,7 +41,9 @@ def disconnect_camera_endpoint(request: CameraConnectionRequest, current_user=De
 
 #ניתוק שיוך כל המודלים של יוזר מסוים ממצלמות
 @router.post("/camera/reset_user_cameras")
-def reset_user_cameras(request: ResetUserCamerasRequest, current_user=Depends(get_current_user)):
+def reset_user_cameras(request: ResetUserCamerasRequest, current_user: User = Depends(get_current_user) , db: Session = Depends(get_db)):
+    if request.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail=f"Unauthorized access to user_id {request.user_id}")
     updated = reset_user_cameras_controller(request.user_id)
     if updated == 0:
         raise HTTPException(status_code=404, detail="No baby profiles found for this user")

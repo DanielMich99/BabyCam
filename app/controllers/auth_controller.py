@@ -3,22 +3,22 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.services.auth_service import (
     register_user as auth_register_user,
-    create_refresh_token,
     authenticate_user,
     add_fcm_token_to_user,
-    delete_fcm_token
+    delete_fcm_token,
+    refresh_access_token as refresh_access_token_service
 )
-from app.schemas.auth_schemas import LoginRequest
+from app.schemas.auth_schemas import LoginRequest, RegisterRequest
 from app.models.user_model import User
 
-def register_user(db: Session, username: str, password: str, email: str):
-    return auth_register_user(db, username, password, email)
+def register_user(db: Session, register_data: RegisterRequest):
+    return auth_register_user(db, register_data)
 
 def login_user(login_data: LoginRequest, db: Session):
     return authenticate_user(db, login_data.username, login_data.password)
 
 def refresh_access_token(refresh_token: str):
-    return create_refresh_token(refresh_token)
+    return refresh_access_token_service(refresh_token)
 
 '''def save_fcm_token(token: str, db: Session, current_user: dict):
     username = current_user["username"]

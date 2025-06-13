@@ -8,16 +8,22 @@ from app.utils.config import config
 from app.services.user_service import create_user
 from database.database import get_db
 from fastapi.security import OAuth2PasswordBearer
+from app.schemas.auth_schemas import RegisterRequest
+from app.schemas import user_schema
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 refresh_tokens = {}
 
-def register_user(db: Session, username: str, password: str, email: str):
-    existing_user = db.query(User).filter(User.username == username).first()
+def register_user(db: Session, register_data: RegisterRequest):
+    existing_user = db.query(User).filter(User.username == register_data.username).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already exists")
-    return create_user(db, username, email, password)
+    new_user = user_schema.UserCreate(username=register_data.username,
+        email=register_data.email,
+        password=register_data.password
+    )
+    return create_user(db, new_user)
 
 def authenticate_user(db: Session, username: str, password: str):
     user = db.query(User).filter(User.username == username).first()
