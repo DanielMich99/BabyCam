@@ -38,8 +38,8 @@ def polling_loop():
                 camera_type = training["camera_type"]
                 start_time = training["start_time"]
 
-                if check_and_download_model(user_id, camera_type, start_time):
-                    print(f"[TRAINING MONITOR] Model ready for {user_id} - {camera_type}")
+                if check_and_download_model(baby_profile_id, camera_type, start_time):
+                    print(f"[TRAINING MONITOR] Model ready for {baby_profile_id} - {camera_type}")
 
                     # שליחת סוקט - לפי המימוש שלך: broadcast_detection(user_id, event_data)
                     event = {
