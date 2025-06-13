@@ -1,8 +1,13 @@
-// This file has been refactored. The main CameraScreen widget is now in 'screens/camera/camera_screen.dart'.
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../../models/baby_profile.dart';
+import '../../components/camera/child_camera_cube.dart';
+import '../../services/auth_state.dart';
 import '../../services/camera_service.dart';
 import '../../services/websocket_service.dart';
+import '../../components/home/add_baby_dialog.dart';
+import '../../components/camera/video_stream_player.dart';
 import '../../components/camera/camera_app_bar.dart';
 import '../../components/camera/camera_grid.dart';
 import '../../components/camera/camera_preview_pager.dart';
@@ -89,10 +94,50 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
+  Future<List<BabyProfile>> fetchBabies() async {
+    final token = await AuthState.getAuthToken();
+    if (token == null) throw Exception('Not authenticated');
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:8000/baby_profiles/my_profiles'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((json) => BabyProfile.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load babies');
+    }
+  }
+
   Future<void> _handleCameraConnection(
       List<BabyProfile> babies, int index, String cameraType) async {
     final baby = babies[index];
     final isHeadCamera = cameraType == 'head_camera';
+    if ((isHeadCamera && baby.camera2On) || (!isHeadCamera && baby.camera1On)) {
+      try {
+        await CameraService.disconnectCamera(baby.id, cameraType);
+        setState(() {
+          babies[index] = baby.copyWith(
+            camera1On: isHeadCamera ? baby.camera1On : false,
+            camera2On: isHeadCamera ? false : baby.camera2On,
+          );
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Camera disconnected successfully')),
+        );
+      } catch (e) {
+        showErrorDialog(context, 'Failed to disconnect camera', e.toString(),
+            () {
+          setState(() {
+            _babiesFuture = fetchBabies();
+          });
+        });
+      }
+      return;
+    }
     setState(() {
       babies[index] = baby.copyWith(
         isConnectingCamera1: !isHeadCamera,
@@ -100,14 +145,20 @@ class _CameraScreenState extends State<CameraScreen> {
       );
     });
     try {
-      final updatedBaby =
-          await CameraService.handleCameraConnection(baby, cameraType);
-      setState(() {
-        babies[index] = updatedBaby;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Camera connection updated successfully')),
-      );
+      final success = await CameraService.connectCamera(baby.id, cameraType);
+      if (success) {
+        setState(() {
+          babies[index] = baby.copyWith(
+            camera1On: !isHeadCamera,
+            camera2On: isHeadCamera,
+            isConnectingCamera1: false,
+            isConnectingCamera2: false,
+          );
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Camera connected successfully')),
+        );
+      }
     } catch (e) {
       setState(() {
         babies[index] = baby.copyWith(
@@ -115,8 +166,7 @@ class _CameraScreenState extends State<CameraScreen> {
           isConnectingCamera2: false,
         );
       });
-      showErrorDialog(
-          context, 'Failed to update camera connection', e.toString(), () {
+      showErrorDialog(context, 'Failed to connect camera', e.toString(), () {
         setState(() {
           _babiesFuture = fetchBabies();
         });
@@ -126,14 +176,18 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _resetAllCameras() async {
     try {
-      final userId = 1; // Replace with actual user ID if available
-      final profilesUpdated = await CameraService.resetAllCameras(userId);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Reset $profilesUpdated cameras')),
-      );
+      final userId = await AuthState.getUserId();
+      if (userId == null) throw Exception('User not authenticated');
+
+      final updatedCount = await CameraService.resetUserCameras(userId);
       setState(() {
         _babiesFuture = fetchBabies();
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text('Successfully reset $updatedCount camera connections')),
+      );
     } catch (e) {
       showErrorDialog(context, 'Failed to reset cameras', e.toString(), () {
         setState(() {

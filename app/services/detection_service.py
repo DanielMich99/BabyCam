@@ -8,16 +8,24 @@ from datetime import datetime
 import shutil
 import glob
 
-# טען את המודל המאומן
+# טען את המודל המאומן רק אם הוא קיים
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-YOLO_MODEL_PATH = os.path.join(BASE_DIR,"uploads", "training_data", "1", "head_camera", "1_head_camera_model.pt")  # הנחתי שזה השם
-model = YOLO(YOLO_MODEL_PATH)
+YOLO_MODEL_PATH = os.path.join(BASE_DIR, "uploads", "training_data", "1", "head_camera", "1_head_camera_model.pt")
+
+model = None
+if os.path.exists(YOLO_MODEL_PATH):
+    model = YOLO(YOLO_MODEL_PATH)
+else:
+    print(f"[INFO] YOLO model not loaded — file not found at: {YOLO_MODEL_PATH}")
 
 # שמות הקלאסים לפי סדר האימון
-#CLASSES = ['knife', 'scissors', 'window', 'pill', 'toilet']
+# CLASSES = ['knife', 'scissors', 'window', 'pill', 'toilet']
 CLASSES = ['pen']
 
 def detect_objects(db: Session, baby_profile_id: int):
+    if model is None:
+        raise HTTPException(status_code=500, detail="YOLO model not loaded. This is expected on developer machines.")
+
     image_path = os.path.join(config.UPLOAD_DIR, str(baby_profile_id), "last_frame.jpg")
     if not os.path.exists(image_path):
         raise HTTPException(status_code=404, detail="No image found for this baby profile")
@@ -44,19 +52,19 @@ def detect_objects(db: Session, baby_profile_id: int):
 
         detected_objects.append(obj_name)
 
-    #     detection_record = DetectionResult(
-    #         baby_profile_id=baby_profile_id,
-    #         detected_object=obj_name,
-    #         confidence=int(confidence * 100),
-    #         timestamp=datetime.utcnow()
-    #     )
-    #     db.add(detection_record)
+        # detection_record = DetectionResult(
+        #     baby_profile_id=baby_profile_id,
+        #     detected_object=obj_name,
+        #     confidence=int(confidence * 100),
+        #     timestamp=datetime.utcnow()
+        # )
+        # db.add(detection_record)
 
     # db.commit()
     return {"detected_objects": detected_objects}
 
 
-# ✅ **2. שליפת תוצאות זיהוי אחרונות מה-DB**
+# ✅ שליפת תוצאות זיהוי אחרונות מה-DB
 def get_last_detection_results(db: Session, baby_profile_id: int):
     """מחזיר את תוצאות הזיהוי האחרונות מה-DB"""
     results = db.query(DetectionResult).filter(DetectionResult.baby_profile_id == baby_profile_id).all()
@@ -64,3 +72,4 @@ def get_last_detection_results(db: Session, baby_profile_id: int):
         raise HTTPException(status_code=404, detail="No detection results found")
 
     return {"detected_objects": [result.detected_object for result in results]}
+

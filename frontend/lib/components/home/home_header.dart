@@ -37,25 +37,7 @@ class HomeHeader extends StatelessWidget {
           ),
           Row(
             children: [
-              IconButton(
-                icon: const Icon(Icons.settings),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SettingsScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: Icon(
-                  Icons.power_settings_new,
-                  color: isCameraOn ? Colors.green : Colors.grey,
-                ),
-                onPressed: () => onCameraToggle(!isCameraOn),
-              ),
+              // IconButton removed as requested
             ],
           ),
         ],
