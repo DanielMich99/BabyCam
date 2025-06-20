@@ -1,16 +1,22 @@
 from pydantic import BaseModel, EmailStr
 
+
 class RegisterRequest(BaseModel):
-    username: str
-    password: str
-    email: EmailStr
+    """Request body schema for user registration."""
+
+    username: str  # Desired username for the new account
+    password: str  # Password for the new account
+    email: EmailStr  # User's email address (validated format)
+
 
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    """Request body schema for user login."""
+
+    username: str  # Username used to log in
+    password: str  # User's password
+
 
 class FCMTokenRequest(BaseModel):
-    token: str
+    """Request schema for submitting an FCM device token."""
 
-class FCMTokenList(BaseModel):
-    tokens: list[str]
+    token: str  # Firebase Cloud Messaging token for push notifications

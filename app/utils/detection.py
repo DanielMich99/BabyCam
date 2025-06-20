@@ -242,7 +242,7 @@ running_tasks = {}
 last_detection_time = {}  # key: profile_camera_class, value: datetime
 stream_buffers = {}  # key: profile_id_camera_type, value: ESP32StreamBuffer
 
-async def start_detection_loop(profile_id: int, camera_type: str, ip: str, current_user: User, model_path: str, db, camera_profiles, origin: str):
+async def start_detection_loop(profile_id: int, camera_type: str, ip: str, current_user: User, model_path: str, db, camera_profiles):
     model = YOLO(model_path)
     stream_url = f"http://{ip}/stream"
     should_stop = False
@@ -284,7 +284,7 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, curre
                                 continue
                             else:
                                 print(f"[DISCONNECTED] Camera for Profile {profile_id} - {camera_type}")
-                                await notify_disconnection_and_stop(profile_id, camera_type, current_user, origin, camera_profiles, db)
+                                await notify_disconnection_and_stop(profile_id, camera_type, current_user, camera_profiles, db)
                                 break
 
                         await asyncio.sleep(0.5)
@@ -401,7 +401,7 @@ async def stop_detection_loop(profile_id: int, camera_type: str):
     if stream_buffer:
         stream_buffer.stop()    
 
-async def notify_disconnection_and_stop(profile_id: int, camera_type: str, current_user: User, origin: str, camera_profiles, db):
+async def notify_disconnection_and_stop(profile_id: int, camera_type: str, current_user: User, camera_profiles, db):
     try:
         from app.services.monitoring_service import stop_monitoring_service
 
