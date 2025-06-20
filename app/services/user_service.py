@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 from app.models.user_model import User
 from app.schemas import user_schema
 from app.utils.hashing import hash_password
+from app.models.baby_profile_model import BabyProfile
+from app.services.baby_profile_service import delete_baby_profile_by_user
 
 # יצירה
 def create_user(db: Session, user_data: user_schema.UserCreate):
@@ -44,6 +46,12 @@ def delete_user(db: Session, user_id: int):
     if db_user is None:
         return None
 
+    # מחק קודם את פרופילי התינוק של המשתמש
+    db_baby_profiles = db.query(BabyProfile).filter(BabyProfile.user_id == user_id).all()
+    for item in db_baby_profiles:
+        delete_baby_profile_by_user(db, item.id, user_id)  # תיקון קריאה
+
+    # ואז מחק את המשתמש עצמו
     db.delete(db_user)
     db.commit()
     return db_user

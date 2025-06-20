@@ -9,7 +9,7 @@ from typing import List
 
 async def start_monitoring_service(camera_profiles: List[CameraTuple], current_user: User, db: Session, request: Request):
     active_sessions = []
-    origin = request.headers.get("origin") or "http://localhost:3000"
+    #origin = request.headers.get("origin") or "http://localhost:3000"
 
     for item in camera_profiles:
         profile = db.query(BabyProfile).filter_by(id=item.baby_profile_id).first()
@@ -25,7 +25,7 @@ async def start_monitoring_service(camera_profiles: List[CameraTuple], current_u
         if not os.path.exists(model_path):
             raise HTTPException(status_code=404, detail=f"Model file not found for {item.camera_type} on profile {item.baby_profile_id}")
 
-        session = await start_detection_loop(profile.id, item.camera_type, ip, current_user, model_path, db, camera_profiles, origin)
+        session = await start_detection_loop(profile.id, item.camera_type, ip, current_user, model_path, db, camera_profiles)
         active_sessions.append(session)
 
     return {"status": "monitoring_started", "sessions": len(active_sessions)}

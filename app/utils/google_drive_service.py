@@ -105,3 +105,42 @@ class GoogleDriveService:
                 time.sleep(2 ** attempt)  # Exponential backoff
 
         raise Exception(f"Download failed after {max_retries} retries")
+    
+    def delete_baby_profile_folder(self, baby_profile_id: int, root_folder_name="babycam_data", max_retries=5):
+        """
+        Delete the folder for a specific baby_profile_id from the root Google Drive folder.
+        """
+        try:
+            # שלב 1: מצא את ה-ID של התיקייה הראשית babycam_data
+            root_folder_id = self.get_or_create_folder(root_folder_name)
+
+            # שלב 2: בנה את שם תיקיית הפרופיל (הוא לפי id בתור מחרוזת)
+            folder_name = str(baby_profile_id)
+
+            # שלב 3: מצא את התיקייה הספציפית
+            query = f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and '{root_folder_id}' in parents and trashed=false"
+            results = self.service.files().list(q=query, fields="files(id)").execute()
+            folders = results.get('files', [])
+
+            if not folders:
+                print(f"[DELETE] No folder found for baby_profile_id {baby_profile_id}")
+                return False
+
+            folder_id = folders[0]['id']
+
+            # שלב 4: מחיקה עם retries
+            for attempt in range(max_retries):
+                try:
+                    self.service.files().delete(fileId=folder_id).execute()
+                    print(f"[DELETE] Successfully deleted folder for baby_profile_id {baby_profile_id}")
+                    return True
+                except Exception as e:
+                    print(f"[DELETE ERROR] Attempt {attempt+1}: {e}")
+                    time.sleep(2 ** attempt)
+
+            raise Exception(f"Failed to delete folder after {max_retries} retries")
+
+        except Exception as e:
+            print(f"[DELETE FOLDER FAILED] {e}")
+            return False
+
