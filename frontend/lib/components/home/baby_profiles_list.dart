@@ -3,6 +3,8 @@ import '../../models/baby_profile.dart';
 import 'dart:convert';
 import '../icons/head_camera_icon.dart';
 import '../icons/static_camera_icon.dart';
+import '../../services/model_training_status_service.dart';
+import 'package:intl/intl.dart';
 
 typedef BabyOptionSelected = void Function(int index, String option);
 typedef CameraToggle = void Function(int index, int cameraNumber);
@@ -89,24 +91,82 @@ class BabyProfilesList extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        IconButton(
-                          tooltip: 'Head Camera Model',
-                          onPressed: onOptionSelected != null
-                              ? () =>
-                                  onOptionSelected!(index, 'head_camera_model')
-                              : null,
-                          icon: const Align(
-                            alignment: Alignment(0, -0.1), // מרים את האייקון טיפה למעלה
-                            child: HeadCameraIcon(),
-                          ),
+                        Column(
+                          children: [
+                            IconButton(
+                              tooltip: 'Head Camera Model',
+                              onPressed: onOptionSelected != null
+                                  ? () => onOptionSelected!(
+                                      index, 'head_camera_model')
+                                  : null,
+                              iconSize: 64,
+                              icon: const SizedBox(
+                                width: 64,
+                                height: 64,
+                                child: Align(
+                                  alignment: Alignment(0, 0.1),
+                                  child: HeadCameraIcon(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              baby.headCameraModelLastUpdatedTime != null
+                                  ? DateFormat('yyyy-MM-dd HH:mm').format(
+                                      baby.headCameraModelLastUpdatedTime!)
+                                  : 'No model file',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: ModelTrainingStatusService()
+                                        .isTraining(baby.id, 'head_camera')
+                                    ? const CircularProgressIndicator(
+                                        strokeWidth: 2)
+                                    : null,
+                              ),
+                            ),
+                          ],
                         ),
-                        IconButton(
-                          tooltip: 'Static Camera Model',
-                          onPressed: onOptionSelected != null
-                              ? () =>
-                                  onOptionSelected!(index, 'static_camera_model')
-                              : null,
-                          icon: StaticCameraIcon(),
+                        Column(
+                          children: [
+                            IconButton(
+                              tooltip: 'Static Camera Model',
+                              onPressed: onOptionSelected != null
+                                  ? () => onOptionSelected!(
+                                      index, 'static_camera_model')
+                                  : null,
+                              iconSize: 64,
+                              icon: const SizedBox(
+                                width: 64,
+                                height: 64,
+                                child: StaticCameraIcon(),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              baby.staticCameraModelLastUpdatedTime != null
+                                  ? DateFormat('yyyy-MM-dd HH:mm').format(
+                                      baby.staticCameraModelLastUpdatedTime!)
+                                  : 'No model file',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: ModelTrainingStatusService()
+                                        .isTraining(baby.id, 'static_camera')
+                                    ? const CircularProgressIndicator(
+                                        strokeWidth: 2)
+                                    : null,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

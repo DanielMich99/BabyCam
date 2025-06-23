@@ -7,6 +7,7 @@ import '../screens/dangerous_object_list_dialog.dart';
 import '../services/user_service.dart';
 import '../services/websocket_service.dart';
 import '../services/dangerous_objects_service.dart';
+import '../services/model_training_status_service.dart';
 
 class ManageDangerousObjectsScreen extends StatefulWidget {
   final int babyProfileId;
@@ -196,14 +197,24 @@ class _ManageDangerousObjectsScreenState
     );
 
     try {
-      await _dangerousObjectsService.updateModel(
+      final result = await _dangerousObjectsService.updateModel(
         babyProfileId: widget.babyProfileId,
         cameraType: widget.cameraType,
         newClasses: _pendingAdditions,
         updatedClasses: _pendingUpdates,
+        riskLevelUpdates: _pendingRiskLevelUpdates,
         deletedClasses:
             _pendingDeletions.map((obj) => obj['name'] as String).toList(),
       );
+
+      if (result['training_strategy'] == 'retrain' ||
+          result['training_strategy'] == 'finetune') {
+        ModelTrainingStatusService().startTraining(
+            widget.babyProfileId,
+            widget.cameraType == 'Head Camera'
+                ? 'head_camera'
+                : 'static_camera');
+      }
 
       Navigator.of(context).pop(); // Remove loading
       setState(() {

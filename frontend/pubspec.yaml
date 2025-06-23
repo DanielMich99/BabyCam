@@ -27,6 +27,7 @@ dependencies:
   flutter_vlc_player: ^7.4.0
   webview_flutter: ^4.13.0
   mjpeg_stream: ^1.0.0
+  intl: ^0.18.0
 
 
 

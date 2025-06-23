@@ -11,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../components/home/add_baby_dialog.dart';
 import '../config/app_config.dart';
+import '../services/model_training_status_service.dart';
 
 class BabiesScreen extends StatefulWidget {
   const BabiesScreen({Key? key}) : super(key: key);
@@ -26,6 +27,19 @@ class _BabiesScreenState extends State<BabiesScreen> {
   void initState() {
     super.initState();
     _babiesFuture = fetchBabies();
+    ModelTrainingStatusService().addListener(_onTrainingStatusChanged);
+  }
+
+  @override
+  void dispose() {
+    ModelTrainingStatusService().removeListener(_onTrainingStatusChanged);
+    super.dispose();
+  }
+
+  void _onTrainingStatusChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<List<BabyProfile>> fetchBabies() async {

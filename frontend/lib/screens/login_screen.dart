@@ -5,6 +5,7 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import '../services/auth_service.dart';
 import '../services/auth_state.dart';
 import '../services/websocket_service.dart';
+import '../services/model_training_status_service.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
 import '../components/auth/logo_header.dart';
@@ -26,6 +27,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final _authService = AuthService();
   final _websocketService = WebSocketService();
   bool _isLoading = false;
+
+  Future<void> _initializeServices(String token) async {
+    await _websocketService.initialize(
+        AppConfig.baseUrl.replaceFirst(RegExp(r'^https?://'), ''), token);
+    ModelTrainingStatusService().initialize(_websocketService);
+  }
 
   Future<void> _handleGoogleSignIn() async {
     try {
@@ -70,10 +77,8 @@ class _LoginScreenState extends State<LoginScreen> {
         await AuthState.saveAuthToken(token);
         await AuthState.saveUsername(_usernameController.text);
 
-        // Initialize WebSocket connection
-        print('Initializing WebSocket with token: $token');
-        await _websocketService.initialize(
-            AppConfig.baseUrl.replaceFirst(RegExp(r'^https?://'), ''), token);
+        // Initialize WebSocket and training status tracking
+        await _initializeServices(token);
 
         if (mounted) {
           // Login successful
@@ -124,6 +129,10 @@ class _LoginScreenState extends State<LoginScreen> {
     final isAuthenticated = await AuthState.isAuthenticated();
     if (isAuthenticated) {
       final username = await AuthState.getUsername();
+      final token = await AuthState.getAuthToken();
+      if (token != null) {
+        await _initializeServices(token);
+      }
       if (mounted && username != null) {
         Navigator.pushReplacement(
           context,

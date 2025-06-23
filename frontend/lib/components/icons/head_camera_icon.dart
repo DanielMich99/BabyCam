@@ -30,7 +30,8 @@ class _HeadCameraPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final headRadius = size.width * 0.35;
+    // Increase head size so the icon better fills its square canvas
+    final headRadius = size.width * 0.43;
 
     // Draw head
     final paint = Paint()..color = skinColor;
@@ -69,8 +70,8 @@ class _HeadCameraPainter extends CustomPainter {
     canvas.drawCircle(Offset(center.dx + eyeOffsetX, center.dy + eyeOffsetY), cheekRadius, cheekPaint);
 
     // Headband on forehead
-    final bandHeight = size.height * 0.07;
-    final bandY = center.dy - headRadius * 0.55;
+    final bandHeight = size.height * 0.08;
+    final bandY = center.dy - headRadius * 0.6;
     final bandRect = Rect.fromCenter(
       center: Offset(center.dx, bandY),
       width: headRadius * 2,
@@ -84,7 +85,7 @@ class _HeadCameraPainter extends CustomPainter {
 
     // Camera on headband (on forehead)
     final camWidth = headRadius * 1.1;
-    final camHeight = bandHeight * 1.5;
+    final camHeight = bandHeight * 1.6;
     final camRect = Rect.fromCenter(
       center: Offset(center.dx, bandY),
       width: camWidth,

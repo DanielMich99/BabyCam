@@ -10,6 +10,7 @@ from app.utils.config import config
 from app.utils.websocket_broadcast import broadcast_detection  # שימוש בחדש לפי המימוש שלך
 from app.utils.fcm_push import send_push_notifications
 from app.models.user_model import User, UserFCMToken
+from app.models.baby_profile_model import BabyProfile
 from sqlalchemy.orm import Session
 from database.database import SessionLocal
 
@@ -134,5 +135,15 @@ def check_and_download_model(baby_profile_id: int, camera_type: str, start_time:
     file_id = file_metadata['id']
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
     drive_service.download_file(file_id, local_path)
+
+    db: Session = SessionLocal()
+    profile = db.query(BabyProfile).filter(BabyProfile.id == baby_profile_id).first()
+    if profile:
+        if camera_type == "head_camera":
+            profile.head_camera_model_last_updated_time = datetime.utcnow()
+        else:
+            profile.static_camera_model_last_updated_time = datetime.utcnow()
+        db.commit()
+    db.close()
 
     return True

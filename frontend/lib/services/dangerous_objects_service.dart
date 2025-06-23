@@ -7,16 +7,29 @@ import '../config/app_config.dart';
 class DangerousObjectsService {
   static const String baseUrl = AppConfig.baseUrl;
 
-  Future<void> updateModel({
+  Future<Map<String, dynamic>> updateModel({
     required int babyProfileId,
     required String cameraType,
     required List<Map<String, dynamic>> newClasses,
     required List<Map<String, dynamic>> updatedClasses,
     required List<String> deletedClasses,
+    List<Map<String, dynamic>> riskLevelUpdates = const [],
   }) async {
+    // Combine regular updates with risk level only updates
+    final allUpdatedClasses = [
+      ...updatedClasses,
+      ...riskLevelUpdates.map((cls) => {
+            'className': cls['name'],
+            'riskLevel': cls['new_risk'],
+            'images': const [],
+          }),
+    ];
+
     // 1. Upload all new images and label files for each pending addition and update
-    for (final cls in [...newClasses, ...updatedClasses]) {
-      await TrainingService.uploadFilesToTemp(List.from(cls['images']));
+    for (final cls in [...newClasses, ...allUpdatedClasses]) {
+      if (cls['images'] != null && (cls['images'] as List).isNotEmpty) {
+        await TrainingService.uploadFilesToTemp(List.from(cls['images']));
+      }
     }
 
     // 2. Prepare request body
@@ -40,7 +53,7 @@ class DangerousObjectsService {
           },
         };
       }).toList(),
-      'updated_classes': updatedClasses.map((cls) {
+      'updated_classes': allUpdatedClasses.map((cls) {
         final imageFilenames = <String>[];
         final labelFilenames = <String>[];
         for (var image in cls['images']) {
@@ -48,7 +61,6 @@ class DangerousObjectsService {
           labelFilenames.add('${image.filename.split('.').first}.txt');
         }
         return {
-          'id': cls['original_id'],
           'name': cls['className'],
           'risk_level': cls['riskLevel'],
           'files': {
@@ -74,5 +86,7 @@ class DangerousObjectsService {
     if (response.statusCode != 200) {
       throw Exception('Failed to update model: ${response.body}');
     }
+
+    return jsonDecode(response.body) as Map<String, dynamic>;
   }
 }

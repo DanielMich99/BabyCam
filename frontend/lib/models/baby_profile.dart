@@ -16,6 +16,10 @@ class BabyProfile {
   final bool camera2On;
   final bool isConnectingCamera1;
   final bool isConnectingCamera2;
+  final DateTime? headCameraModelLastUpdatedTime;
+  final DateTime? staticCameraModelLastUpdatedTime;
+  final bool headCameraTraining;
+  final bool staticCameraTraining;
 
   BabyProfile({
     required this.id,
@@ -33,6 +37,10 @@ class BabyProfile {
     this.camera2On = false,
     this.isConnectingCamera1 = false,
     this.isConnectingCamera2 = false,
+    this.headCameraModelLastUpdatedTime,
+    this.staticCameraModelLastUpdatedTime,
+    this.headCameraTraining = false,
+    this.staticCameraTraining = false,
   });
 
   factory BabyProfile.fromJson(Map<String, dynamic> json) {
@@ -51,6 +59,14 @@ class BabyProfile {
       camera2On: json['camera2_on'] ?? false,
       isConnectingCamera1: false,
       isConnectingCamera2: false,
+      headCameraModelLastUpdatedTime: json['head_camera_model_last_updated_time'] != null
+          ? DateTime.parse(json['head_camera_model_last_updated_time'])
+          : null,
+      staticCameraModelLastUpdatedTime: json['static_camera_model_last_updated_time'] != null
+          ? DateTime.parse(json['static_camera_model_last_updated_time'])
+          : null,
+      headCameraTraining: false,
+      staticCameraTraining: false,
     );
   }
 
@@ -70,6 +86,10 @@ class BabyProfile {
     bool? camera2On,
     bool? isConnectingCamera1,
     bool? isConnectingCamera2,
+    DateTime? headCameraModelLastUpdatedTime,
+    DateTime? staticCameraModelLastUpdatedTime,
+    bool? headCameraTraining,
+    bool? staticCameraTraining,
   }) {
     return BabyProfile(
       id: id ?? this.id,
@@ -87,6 +107,13 @@ class BabyProfile {
       camera2On: camera2On ?? this.camera2On,
       isConnectingCamera1: isConnectingCamera1 ?? this.isConnectingCamera1,
       isConnectingCamera2: isConnectingCamera2 ?? this.isConnectingCamera2,
+      headCameraModelLastUpdatedTime:
+          headCameraModelLastUpdatedTime ?? this.headCameraModelLastUpdatedTime,
+      staticCameraModelLastUpdatedTime:
+          staticCameraModelLastUpdatedTime ??
+          this.staticCameraModelLastUpdatedTime,
+      headCameraTraining: headCameraTraining ?? this.headCameraTraining,
+      staticCameraTraining: staticCameraTraining ?? this.staticCameraTraining,
     );
   }
 }

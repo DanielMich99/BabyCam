@@ -11,6 +11,9 @@ class TrainingService {
 
   // 1. Upload files (images and labels) to temp
   static Future<void> uploadFilesToTemp(List<ImageData> images) async {
+    if (images.isEmpty) {
+      return; // No files to upload
+    }
     final token = await AuthState.getAuthToken();  // ✅ שלוף את הטוקן כמו בשאר הקוד
     if (token == null) throw Exception('Not authenticated');
 

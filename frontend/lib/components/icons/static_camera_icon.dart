@@ -34,7 +34,8 @@ class _StaticCameraPainter extends CustomPainter {
     final height = size.height;
 
     // Draw dresser (body)
-    final dresserTop = height * 0.55;
+    // Adjust proportions so the icon uses its space evenly
+    final dresserTop = height * 0.45;
     final dresserHeight = height * 0.35;
     final drawerHeight = dresserHeight / 2;
 
@@ -61,7 +62,7 @@ class _StaticCameraPainter extends CustomPainter {
 
     // Draw dresser legs
     final legWidth = width * 0.08;
-    final legHeight = height * 0.15;
+    final legHeight = height * 0.1;
     final leftLeg = Rect.fromLTWH(width * 0.22, dresserTop + dresserHeight, legWidth, legHeight);
     final rightLeg = Rect.fromLTWH(width * 0.7, dresserTop + dresserHeight, legWidth, legHeight);
     canvas.drawRect(leftLeg, paint);
