@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/baby_profile.dart';
 import 'dart:convert';
+import '../icons/head_camera_icon.dart';
+import '../icons/static_camera_icon.dart';
 
 typedef BabyOptionSelected = void Function(int index, String option);
 typedef CameraToggle = void Function(int index, int cameraNumber);
@@ -40,7 +42,7 @@ class BabyProfilesList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 210,
+      height: 230,
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -84,6 +86,30 @@ class BabyProfilesList extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        IconButton(
+                          tooltip: 'Head Camera Model',
+                          onPressed: onOptionSelected != null
+                              ? () =>
+                                  onOptionSelected!(index, 'head_camera_model')
+                              : null,
+                          icon: const Align(
+                            alignment: Alignment(0, -0.1), // מרים את האייקון טיפה למעלה
+                            child: HeadCameraIcon(),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Static Camera Model',
+                          onPressed: onOptionSelected != null
+                              ? () =>
+                                  onOptionSelected!(index, 'static_camera_model')
+                              : null,
+                          icon: StaticCameraIcon(),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 12),
                     Align(
                       alignment: Alignment.centerRight,

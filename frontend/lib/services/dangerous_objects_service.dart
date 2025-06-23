@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_state.dart';
 import 'training_service.dart';
+import '../config/app_config.dart';
 
 class DangerousObjectsService {
-  static const String baseUrl = 'http://10.0.2.2:8000';
+  static const String baseUrl = AppConfig.baseUrl;
 
   Future<void> updateModel({
     required int babyProfileId,

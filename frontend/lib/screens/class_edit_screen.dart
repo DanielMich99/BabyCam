@@ -47,9 +47,10 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
     images = List.from(widget.initialImages);
   }
 
-  String _generateImageFilename(int index) {
-    // Format: class_name_00001.jpg
-    return '${widget.className}_${index.toString().padLeft(5, '0')}.jpg';
+  String _generateImageFilename() {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final random = DateTime.now().microsecondsSinceEpoch % 1000000;
+    return '${widget.className}_${timestamp}_$random.jpg';
   }
 
   Future<void> _pickImages() async {
@@ -57,10 +58,9 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
       final List<XFile> pickedFiles = await _picker.pickMultiImage();
       if (pickedFiles.isNotEmpty) {
         setState(() {
-          final startIndex = images.length;
-          for (var i = 0; i < pickedFiles.length; i++) {
-            final filename = _generateImageFilename(startIndex + i);
-            images.add(ImageData(File(pickedFiles[i].path), filename));
+          for (var file in pickedFiles) {
+            final filename = _generateImageFilename();
+            images.add(ImageData(File(file.path), filename));
           }
         });
       }
@@ -120,10 +120,8 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
 
       // Add frames to the images list
       setState(() {
-        final startIndex = images.length;
-        for (var i = 0; i < frames.length; i++) {
-          final frameFile = frames[i];
-          final filename = _generateImageFilename(startIndex + i);
+        for (var frameFile in frames) {
+          final filename = _generateImageFilename();
           images.add(ImageData(frameFile, filename));
         }
       });
@@ -137,8 +135,14 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
   }
 
   void _editBoundingBox(ImageData image) {
-    final isLastImage =
-        images.lastWhere((img) => img.boundingBoxes.isEmpty) == image;
+    bool isLastImage = false;
+    try {
+      final lastUnlabeled =
+          images.lastWhere((img) => img.boundingBoxes.isEmpty);
+      isLastImage = lastUnlabeled == image;
+    } catch (_) {
+      // all images are labeled
+    }
 
     showDialog(
       context: context,
@@ -178,6 +182,12 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
 
   void _cancel() {
     Navigator.pop(context);
+  }
+
+  void _deleteImage(int index) {
+    setState(() {
+      images.removeAt(index);
+    });
   }
 
   @override
@@ -252,6 +262,14 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
                           Image.file(
                             image.file,
                             fit: BoxFit.cover,
+                          ),
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _deleteImage(idx),
+                            ),
                           ),
                           if (image.boundingBoxes.isNotEmpty)
                             Positioned(

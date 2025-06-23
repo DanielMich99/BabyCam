@@ -6,6 +6,7 @@ import '../screens/home_screen.dart';
 import '../screens/alerts_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../config/app_config.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/auth_state.dart';
 
@@ -29,7 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _updateUser({String? email, String? password}) async {
-    final url = Uri.parse('http://10.0.2.2:8000/users/me');
+    final url = Uri.parse('${AppConfig.baseUrl}/users/me');
     final token = await _getToken(); // Implement this to get JWT
     final headers = {
       'Content-Type': 'application/json',

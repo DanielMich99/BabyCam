@@ -27,11 +27,15 @@ class WebSocketService {
     }
 
     try {
-      final cleanToken = _token!.trim();
-      final uri = Uri.parse('ws://$_baseUrl/ws/detections?token=$cleanToken');
+      final uri = Uri.parse('ws://$_baseUrl/ws/detections');
       print('Connecting to WebSocket: $uri');
 
       _channel = WebSocketChannel.connect(uri);
+
+      // 🔥 Send the token right after connection
+      final cleanToken = _token!.trim();
+      final authMessage = jsonEncode({'token': cleanToken});
+      _channel!.sink.add(authMessage);
 
       _channel!.stream.listen(
         (message) {
@@ -60,6 +64,7 @@ class WebSocketService {
       _scheduleReconnect();
     }
   }
+
 
   void disconnect() {
     _reconnectTimer?.cancel();

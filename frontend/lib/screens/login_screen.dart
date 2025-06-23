@@ -10,6 +10,7 @@ import 'home_screen.dart';
 import '../components/auth/logo_header.dart';
 import '../components/auth/login_form.dart';
 import '../components/auth/social_login_buttons.dart';
+import '../config/app_config.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -71,7 +72,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
         // Initialize WebSocket connection
         print('Initializing WebSocket with token: $token');
-        await _websocketService.initialize('10.0.2.2:8000', token);
+        await _websocketService.initialize(
+            AppConfig.baseUrl.replaceFirst(RegExp(r'^https?://'), ''), token);
 
         if (mounted) {
           // Login successful

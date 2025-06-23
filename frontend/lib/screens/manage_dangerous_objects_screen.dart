@@ -68,6 +68,10 @@ class _ManageDangerousObjectsScreenState
         fullscreenDialog: true,
         builder: (context) => DangerousObjectListDialog(
           babyProfileId: widget.babyProfileId,
+          cameraType: widget.cameraType == 'Head Camera'
+              ? 'head_camera'
+              : 'static_camera',
+          allowCameraTypeChange: false,
         ),
       ),
     );
@@ -104,15 +108,11 @@ class _ManageDangerousObjectsScreenState
 
   Future<void> _startAddObjectFlow(BuildContext context,
       {Map<String, dynamic>? editClass, int? editIndex}) async {
-    String? cameraType = editClass != null
+    String cameraType = editClass != null
         ? (editClass['modelType'] == 'head_camera_model'
             ? 'Head Camera'
             : 'Static Camera')
-        : await showDialog<String>(
-            context: context,
-            builder: (context) => const CameraTypeSelectionDialog(),
-          );
-    if (cameraType == null) return;
+        : widget.cameraType;
 
     String? objectName = editClass != null
         ? editClass['className']
@@ -227,7 +227,8 @@ class _ManageDangerousObjectsScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Dangerous Objects'),
+        title: Text(
+            'Manage Dangerous Objects (${widget.cameraType})'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

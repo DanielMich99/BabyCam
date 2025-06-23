@@ -12,6 +12,7 @@ import '../../components/camera/camera_app_bar.dart';
 import '../../components/camera/camera_grid.dart';
 import '../../components/camera/camera_preview_pager.dart';
 import '../../components/camera/camera_helpers.dart';
+import '../../config/app_config.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({Key? key}) : super(key: key);
@@ -98,7 +99,7 @@ class _CameraScreenState extends State<CameraScreen> {
     final token = await AuthState.getAuthToken();
     if (token == null) throw Exception('Not authenticated');
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:8000/baby_profiles/my_profiles'),
+      Uri.parse('${AppConfig.baseUrl}/baby_profiles/my_profiles'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
