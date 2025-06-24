@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import '../models/notification_item.dart';
 import '../config/app_config.dart';
@@ -71,6 +72,24 @@ class DetectionService {
       return data.map((json) => NotificationItem.fromJson(json)).toList();
     } else {
       throw Exception('Failed to load filtered detection results');
+    }
+  }
+
+  Future<Uint8List> getDetectionImage(int id) async {
+    final token = await _getAuthToken();
+    if (token == null) throw Exception('Not authenticated');
+
+    final response = await http.get(
+      Uri.parse(AppConfig.getUrl('${AppConfig.detectionResultsEndpoint}/$id/image')),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return response.bodyBytes;
+    } else {
+      throw Exception('Failed to load detection image');
     }
   }
 }

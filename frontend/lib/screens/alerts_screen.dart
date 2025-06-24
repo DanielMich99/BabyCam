@@ -35,8 +35,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
         _error = null;
       });
 
-      final notifications =
-          await widget.detectionService.getMyDetectionResults();
+      final notifications = await widget.detectionService.getMyDetectionResults();
       setState(() {
         _notifications = notifications;
         _isLoading = false;
@@ -61,6 +60,24 @@ class _AlertsScreenState extends State<AlertsScreen> {
           SnackBar(content: Text('Failed to delete notification: $e')),
         );
       }
+    }
+  }
+
+  Future<void> _showImage(int id) async {
+    try {
+      final bytes = await widget.detectionService.getDetectionImage(id);
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          content: Image.memory(bytes),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load image: $e')),
+      );
     }
   }
 
@@ -108,7 +125,6 @@ class _AlertsScreenState extends State<AlertsScreen> {
       );
     }
 
-    // Sort notifications based on _sortBy
     List<NotificationItem> sortedNotifications = List.from(_notifications);
     if (_sortBy == 'name') {
       sortedNotifications.sort((a, b) {
@@ -117,7 +133,6 @@ class _AlertsScreenState extends State<AlertsScreen> {
         return nameA.compareTo(nameB);
       });
     } else {
-      // Default: sort by time, newest first
       sortedNotifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     }
 
@@ -142,8 +157,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
                 DropdownButton<String>(
                   value: _sortBy,
                   items: const [
-                    DropdownMenuItem(
-                        value: 'time', child: Text('Time (Newest)')),
+                    DropdownMenuItem(value: 'time', child: Text('Time (Newest)')),
                     DropdownMenuItem(value: 'name', child: Text('Baby Name')),
                   ],
                   onChanged: (value) {
@@ -172,9 +186,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
                     itemCount: sortedNotifications.length,
                     itemBuilder: (context, index) {
                       final notification = sortedNotifications[index];
-                      final babyName =
-                          widget.babyProfileNames[notification.babyProfileId] ??
-                              'Unknown';
+                      final babyName = widget.babyProfileNames[notification.babyProfileId] ?? 'Unknown';
                       return Dismissible(
                         key: ValueKey(notification.id),
                         direction: DismissDirection.endToStart,
@@ -184,11 +196,9 @@ class _AlertsScreenState extends State<AlertsScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: const Icon(Icons.delete, color: Colors.white),
                         ),
-                        onDismissed: (direction) =>
-                            _deleteNotification(notification.id),
+                        onDismissed: (direction) => _deleteNotification(notification.id),
                         child: Card(
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -224,9 +234,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
                                     Text(
                                       '${(notification.confidence * 100).toStringAsFixed(1)}%',
                                       style: TextStyle(
-                                        color: notification.confidence > 0.8
-                                            ? Colors.red
-                                            : Colors.orange,
+                                        color: notification.confidence > 0.8 ? Colors.red : Colors.orange,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -235,11 +243,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
                                 const SizedBox(height: 8),
                                 Row(
                                   children: [
-                                    Icon(
-                                      Icons.videocam,
-                                      size: 16,
-                                      color: Colors.grey.shade600,
-                                    ),
+                                    Icon(Icons.videocam, size: 16, color: Colors.grey.shade600),
                                     const SizedBox(width: 4),
                                     Text(
                                       notification.cameraType,
@@ -255,6 +259,10 @@ class _AlertsScreenState extends State<AlertsScreen> {
                                         color: Colors.grey.shade600,
                                         fontSize: 12,
                                       ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.image),
+                                      onPressed: () => _showImage(notification.id),
                                     ),
                                   ],
                                 ),
