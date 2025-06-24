@@ -51,13 +51,13 @@ class CameraConnectionManager:
                 if await self._is_camera_alive(ip):
                     await self._update_baby_profile_ip(baby_profile_id, camera_type, ip)
                     del self._waiting_connections[key]
-                    return True
+                    return f"http://{ip}/stream"
                 else:
                     print(f"Camera at {ip} not responding.")    
             await asyncio.sleep(1)
 
         del self._waiting_connections[key]
-        return False
+        return None
 
     async def _is_camera_alive(self, ip: str) -> bool:
         try:
