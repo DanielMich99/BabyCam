@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/baby_profile.dart';
 import '../../services/camera_service.dart';
 import '../../services/websocket_service.dart';
+import '../../services/monitoring_service.dart';
 import '../../components/camera/camera_app_bar.dart';
 import '../../components/camera/camera_grid.dart';
 import '../../components/camera/camera_preview_pager.dart';
@@ -19,6 +20,7 @@ class _CameraScreenState extends State<CameraScreen> {
   late Future<List<BabyProfile>> _babiesFuture;
   bool _detectionSystemActive = false;
   final _websocketService = WebSocketService();
+  final _monitoringService = MonitoringService();
 
   @override
   void initState() {
@@ -76,17 +78,73 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  void _toggleDetectionSystem() {
-    setState(() {
-      _detectionSystemActive = !_detectionSystemActive;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_detectionSystemActive
-            ? 'Detection System Activated'
-            : 'Detection System Deactivated'),
-      ),
-    );
+  Future<void> _toggleDetectionSystem() async {
+    try {
+      // Get current babies data
+      final babies = await _babiesFuture;
+
+      // Prepare camera profiles for monitoring
+      final List<Map<String, dynamic>> cameraProfiles = [];
+
+      for (final baby in babies) {
+        if (baby.camera1On && baby.staticCameraIp != null) {
+          cameraProfiles.add({
+            'baby_profile_id': baby.id,
+            'camera_type': 'static_camera',
+          });
+        }
+        if (baby.camera2On && baby.headCameraIp != null) {
+          cameraProfiles.add({
+            'baby_profile_id': baby.id,
+            'camera_type': 'head_camera',
+          });
+        }
+      }
+
+      if (cameraProfiles.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('No active cameras found. Please connect cameras first.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      if (!_detectionSystemActive) {
+        // Start monitoring
+        await _monitoringService.startMonitoring(cameraProfiles);
+        setState(() {
+          _detectionSystemActive = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Detection System Activated'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // Stop monitoring
+        await _monitoringService.stopMonitoring(cameraProfiles);
+        setState(() {
+          _detectionSystemActive = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Detection System Deactivated'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _handleCameraConnection(

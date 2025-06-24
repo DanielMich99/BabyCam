@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../screens/camera/camera_screen.dart';
+import '../../screens/camera_screen.dart';
 import '../../screens/alerts_screen.dart';
 import '../../screens/babies_screen.dart';
 import '../../screens/settings_screen.dart';

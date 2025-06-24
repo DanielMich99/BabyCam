@@ -32,7 +32,7 @@ class CameraPreviewPager extends StatelessWidget {
                       borderRadius:
                           const BorderRadius.vertical(top: Radius.circular(20)),
                       child: VideoStreamPlayer(
-                        streamUrl: 'http://${cam['ip']}:81/stream',
+                        streamUrl: 'http://${cam['ip']}:80/stream',
                         isActive: true,
                       ),
                     ),

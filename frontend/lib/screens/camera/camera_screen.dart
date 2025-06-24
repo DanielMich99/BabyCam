@@ -7,6 +7,7 @@ import '../../components/camera/child_camera_cube.dart';
 import '../../services/auth_state.dart';
 import '../../services/camera_service.dart';
 import '../../services/websocket_service.dart';
+import '../../services/monitoring_service.dart';
 import '../../components/home/add_baby_dialog.dart';
 import '../../components/camera/video_stream_player.dart';
 import '../../components/camera/camera_app_bar.dart';
@@ -26,6 +27,7 @@ class _CameraScreenState extends State<CameraScreen> {
   late Future<List<BabyProfile>> _babiesFuture;
   bool _detectionSystemActive = false;
   final _websocketService = WebSocketService();
+  final _monitoringService = MonitoringService();
   bool _cameraConnectionInProgress = false;
 
   @override
@@ -84,17 +86,73 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  void _toggleDetectionSystem() {
-    setState(() {
-      _detectionSystemActive = !_detectionSystemActive;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_detectionSystemActive
-            ? 'Detection System Activated'
-            : 'Detection System Deactivated'),
-      ),
-    );
+  Future<void> _toggleDetectionSystem() async {
+    try {
+      // Get current babies data
+      final babies = await _babiesFuture;
+
+      // Prepare camera profiles for monitoring
+      final List<Map<String, dynamic>> cameraProfiles = [];
+
+      for (final baby in babies) {
+        if (baby.camera1On && baby.staticCameraIp != null) {
+          cameraProfiles.add({
+            'baby_profile_id': baby.id,
+            'camera_type': 'static_camera',
+          });
+        }
+        if (baby.camera2On && baby.headCameraIp != null) {
+          cameraProfiles.add({
+            'baby_profile_id': baby.id,
+            'camera_type': 'head_camera',
+          });
+        }
+      }
+
+      if (cameraProfiles.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('No active cameras found. Please connect cameras first.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      if (!_detectionSystemActive) {
+        // Start monitoring
+        await _monitoringService.startMonitoring(cameraProfiles);
+        setState(() {
+          _detectionSystemActive = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Detection System Activated'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // Stop monitoring
+        await _monitoringService.stopMonitoring(cameraProfiles);
+        setState(() {
+          _detectionSystemActive = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Detection System Deactivated'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<List<BabyProfile>> fetchBabies() async {
@@ -120,8 +178,8 @@ class _CameraScreenState extends State<CameraScreen> {
     if (_cameraConnectionInProgress) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content:
-                Text('Please wait for the current camera to finish connecting')),
+            content: Text(
+                'Please wait for the current camera to finish connecting')),
       );
       return;
     }
@@ -131,7 +189,8 @@ class _CameraScreenState extends State<CameraScreen> {
     final baby = babies[index];
     final isHeadCamera = cameraType == 'head_camera';
     try {
-      if ((isHeadCamera && baby.camera2On) || (!isHeadCamera && baby.camera1On)) {
+      if ((isHeadCamera && baby.camera2On) ||
+          (!isHeadCamera && baby.camera1On)) {
         await CameraService.disconnectCamera(baby.id, cameraType);
         setState(() {
           babies[index] = baby.copyWith(
@@ -264,14 +323,18 @@ class _CameraScreenState extends State<CameraScreen> {
                           _detectionSystemActive
                               ? Icons.security
                               : Icons.security_outlined,
-                          color: _detectionSystemActive ? Colors.green : Colors.grey,
+                          color: _detectionSystemActive
+                              ? Colors.green
+                              : Colors.grey,
                         ),
                         label: Text(
                           _detectionSystemActive
                               ? 'Detection System Active'
                               : 'Activate Detection System',
                           style: TextStyle(
-                            color: _detectionSystemActive ? Colors.green : Colors.grey,
+                            color: _detectionSystemActive
+                                ? Colors.green
+                                : Colors.grey,
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
@@ -300,8 +363,10 @@ class _CameraScreenState extends State<CameraScreen> {
                           const SizedBox(height: 8),
                           if (activeCameras.isNotEmpty)
                             Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 12.0),
-                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 12.0),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 8.0),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(20),
@@ -322,7 +387,8 @@ class _CameraScreenState extends State<CameraScreen> {
                             ),
                           if (activeCameras.isEmpty)
                             Padding(
-                              padding: const EdgeInsets.only(top: 32.0, bottom: 16.0),
+                              padding: const EdgeInsets.only(
+                                  top: 32.0, bottom: 16.0),
                               child: Text(
                                 'No active cameras',
                                 style: TextStyle(
