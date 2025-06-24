@@ -121,6 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
+              _websocketService.disconnect();
               await AuthState.clearAuth();
               if (mounted) {
                 Navigator.pushReplacement(

@@ -12,6 +12,9 @@ manager = ConnectionManager()
 @router.websocket("/ws/detections")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    client = websocket.client
+    client_info = f"{client.host}:{client.port}" if client else "unknown"
+    user_id = None
 
     try:
         auth_message = await websocket.receive_text()
@@ -36,11 +39,18 @@ async def websocket_endpoint(websocket: WebSocket):
         user_id = user.id
 
         await manager.connect(user_id, websocket)
-        print(f"[WEBSOCKET] Client connected for user_id {user_id}")
+        print(
+            f"[WEBSOCKET] Client connected: user_id={user_id}, address={client_info}"
+        )
 
         while True:
             await websocket.receive_text()
 
     except WebSocketDisconnect:
-        print(f"[WEBSOCKET] Client disconnected")
-        manager.disconnect(user_id, websocket)
+        if user_id is not None:
+            print(
+                f"[WEBSOCKET] Client disconnected: user_id={user_id}, address={client_info}"
+            )
+            manager.disconnect(user_id, websocket)
+        else:
+            print(f"[WEBSOCKET] Client disconnected before authentication: address={client_info}")

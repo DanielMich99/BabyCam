@@ -20,41 +20,34 @@ class CustomBottomNav extends StatelessWidget {
     required this.babyProfileNames,
   }) : super(key: key);
 
-  void _handleNavigation(BuildContext context, int index) {
+  Future<void> _handleNavigation(BuildContext context, int index) async {
     onTap(index);
 
+    Widget? page;
     switch (index) {
       case 1:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const CameraScreen()),
-        );
+        page = const CameraScreen();
         break;
       case 2:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AlertsScreen(
-              detectionService: DetectionService(),
-              babyProfileNames: babyProfileNames,
-            ),
-          ),
+        page = AlertsScreen(
+          detectionService: DetectionService(),
+          babyProfileNames: babyProfileNames,
         );
         break;
       case 3:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const BabiesScreen(),
-          ),
-        );
+        page = const BabiesScreen();
         break;
       case 4:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const SettingsScreen()),
-        );
+        page = const SettingsScreen();
         break;
+    }
+
+    if (page != null) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => page!),
+      );
+      onTap(0);
     }
   }
 
