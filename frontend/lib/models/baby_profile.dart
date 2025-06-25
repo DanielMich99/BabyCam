@@ -55,16 +55,18 @@ class BabyProfile {
       profilePicture: json['profile_picture'],
       headCameraIp: json['head_camera_ip'],
       staticCameraIp: json['static_camera_ip'],
-      camera1On: json['camera1_on'] ?? false,
-      camera2On: json['camera2_on'] ?? false,
+      camera1On: json['static_camera_on'] ?? false,
+      camera2On: json['head_camera_on'] ?? false,
       isConnectingCamera1: false,
       isConnectingCamera2: false,
-      headCameraModelLastUpdatedTime: json['head_camera_model_last_updated_time'] != null
-          ? DateTime.parse(json['head_camera_model_last_updated_time'])
-          : null,
-      staticCameraModelLastUpdatedTime: json['static_camera_model_last_updated_time'] != null
-          ? DateTime.parse(json['static_camera_model_last_updated_time'])
-          : null,
+      headCameraModelLastUpdatedTime:
+          json['head_camera_model_last_updated_time'] != null
+              ? DateTime.parse(json['head_camera_model_last_updated_time'])
+              : null,
+      staticCameraModelLastUpdatedTime:
+          json['static_camera_model_last_updated_time'] != null
+              ? DateTime.parse(json['static_camera_model_last_updated_time'])
+              : null,
       headCameraTraining: false,
       staticCameraTraining: false,
     );
@@ -109,8 +111,7 @@ class BabyProfile {
       isConnectingCamera2: isConnectingCamera2 ?? this.isConnectingCamera2,
       headCameraModelLastUpdatedTime:
           headCameraModelLastUpdatedTime ?? this.headCameraModelLastUpdatedTime,
-      staticCameraModelLastUpdatedTime:
-          staticCameraModelLastUpdatedTime ??
+      staticCameraModelLastUpdatedTime: staticCameraModelLastUpdatedTime ??
           this.staticCameraModelLastUpdatedTime,
       headCameraTraining: headCameraTraining ?? this.headCameraTraining,
       staticCameraTraining: staticCameraTraining ?? this.staticCameraTraining,

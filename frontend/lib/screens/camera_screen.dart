@@ -30,12 +30,15 @@ class _CameraScreenState extends State<CameraScreen> {
     _babiesFuture = fetchBabies();
     _websocketService.addDetectionListener(_handleDetection);
     _websocketService.addDetectionListener(_handleCameraEvents);
+    _monitoringService.addStateListener(_onDetectionStateChanged);
+    _detectionSystemActive = _monitoringService.isDetectionActive;
   }
 
   @override
   void dispose() {
     _websocketService.removeDetectionListener(_handleDetection);
     _websocketService.removeDetectionListener(_handleCameraEvents);
+    _monitoringService.removeStateListener(_onDetectionStateChanged);
     super.dispose();
   }
 
@@ -77,6 +80,14 @@ class _CameraScreenState extends State<CameraScreen> {
           duration: const Duration(seconds: 3),
         ),
       );
+    }
+  }
+
+  void _onDetectionStateChanged() {
+    if (mounted) {
+      setState(() {
+        _detectionSystemActive = _monitoringService.isDetectionActive;
+      });
     }
   }
 
@@ -172,6 +183,8 @@ class _CameraScreenState extends State<CameraScreen> {
           babies[index] = baby.copyWith(
             camera1On: isHeadCamera ? baby.camera1On : false,
             camera2On: isHeadCamera ? false : baby.camera2On,
+            staticCameraIp: isHeadCamera ? baby.staticCameraIp : null,
+            headCameraIp: isHeadCamera ? null : baby.headCameraIp,
           );
         });
         ScaffoldMessenger.of(context).showSnackBar(
@@ -187,8 +200,11 @@ class _CameraScreenState extends State<CameraScreen> {
       });
       final success = await CameraService.connectCamera(baby.id, cameraType);
       if (success) {
+        final updatedBabies = await fetchBabies();
+        final updatedBaby = updatedBabies.firstWhere((b) => b.id == baby.id);
+
         setState(() {
-          babies[index] = baby.copyWith(
+          babies[index] = updatedBaby.copyWith(
             camera1On: !isHeadCamera,
             camera2On: isHeadCamera,
             isConnectingCamera1: false,

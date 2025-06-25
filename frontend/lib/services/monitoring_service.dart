@@ -1,9 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import '../config/app_config.dart';
 import 'auth_state.dart';
+import 'detection_system_state.dart';
 
 class MonitoringService {
+  final _detectionState = DetectionSystemState();
+
   Future<String?> _getAuthToken() async {
     return await AuthState.getAuthToken();
   }
@@ -25,6 +29,7 @@ class MonitoringService {
     );
 
     if (response.statusCode == 200) {
+      _detectionState.setActive(true);
       return jsonDecode(response.body);
     } else {
       final errorBody = jsonDecode(response.body);
@@ -49,10 +54,21 @@ class MonitoringService {
     );
 
     if (response.statusCode == 200) {
+      _detectionState.setActive(false);
       return jsonDecode(response.body);
     } else {
       final errorBody = jsonDecode(response.body);
       throw Exception(errorBody['detail'] ?? 'Failed to stop monitoring');
     }
+  }
+
+  bool get isDetectionActive => _detectionState.isActive;
+
+  void addStateListener(VoidCallback listener) {
+    _detectionState.addListener(listener);
+  }
+
+  void removeStateListener(VoidCallback listener) {
+    _detectionState.removeListener(listener);
   }
 }
