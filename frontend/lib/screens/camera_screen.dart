@@ -1,5 +1,6 @@
 // This file has been refactored. The main CameraScreen widget is now in 'screens/camera/camera_screen.dart'.
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../../models/baby_profile.dart';
 import '../../services/camera_service.dart';
 import '../../services/websocket_service.dart';
@@ -21,6 +22,7 @@ class _CameraScreenState extends State<CameraScreen> {
   bool _detectionSystemActive = false;
   final _websocketService = WebSocketService();
   final _monitoringService = MonitoringService();
+  bool _cameraConnectionInProgress = false;
 
   @override
   void initState() {
@@ -149,23 +151,54 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _handleCameraConnection(
       List<BabyProfile> babies, int index, String cameraType) async {
+    if (_cameraConnectionInProgress) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Please wait for the current camera to finish connecting')),
+      );
+      return;
+    }
+    setState(() {
+      _cameraConnectionInProgress = true;
+    });
     final baby = babies[index];
     final isHeadCamera = cameraType == 'head_camera';
-    setState(() {
-      babies[index] = baby.copyWith(
-        isConnectingCamera1: !isHeadCamera,
-        isConnectingCamera2: isHeadCamera,
-      );
-    });
     try {
-      final updatedBaby =
-          await CameraService.handleCameraConnection(baby, cameraType);
+      if ((isHeadCamera && baby.camera2On) ||
+          (!isHeadCamera && baby.camera1On)) {
+        await CameraService.disconnectCamera(baby.id, cameraType);
+        setState(() {
+          babies[index] = baby.copyWith(
+            camera1On: isHeadCamera ? baby.camera1On : false,
+            camera2On: isHeadCamera ? false : baby.camera2On,
+          );
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Camera disconnected successfully')),
+        );
+        return;
+      }
       setState(() {
-        babies[index] = updatedBaby;
+        babies[index] = baby.copyWith(
+          isConnectingCamera1: !isHeadCamera,
+          isConnectingCamera2: isHeadCamera,
+        );
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Camera connection updated successfully')),
-      );
+      final success = await CameraService.connectCamera(baby.id, cameraType);
+      if (success) {
+        setState(() {
+          babies[index] = baby.copyWith(
+            camera1On: !isHeadCamera,
+            camera2On: isHeadCamera,
+            isConnectingCamera1: false,
+            isConnectingCamera2: false,
+          );
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Camera connected successfully')),
+        );
+      }
     } catch (e) {
       setState(() {
         babies[index] = baby.copyWith(
@@ -173,12 +206,19 @@ class _CameraScreenState extends State<CameraScreen> {
           isConnectingCamera2: false,
         );
       });
-      showErrorDialog(
-          context, 'Failed to update camera connection', e.toString(), () {
+      showErrorDialog(context, 'Failed to connect camera', e.toString(), () {
         setState(() {
           _babiesFuture = fetchBabies();
         });
       });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _cameraConnectionInProgress = false;
+        });
+      } else {
+        _cameraConnectionInProgress = false;
+      }
     }
   }
 
@@ -203,134 +243,198 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: buildCameraAppBar(
-        onGridView: _navigateToAllCameras,
-        onResetCameras: _resetAllCameras,
-      ),
-      body: FutureBuilder<List<BabyProfile>>(
-        future: _babiesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No babies found.'));
-          }
-          final babies = snapshot.data!;
-          final List<Map<String, dynamic>> activeCameras = [];
-          for (final baby in babies) {
-            if (baby.camera1On && baby.staticCameraIp != null) {
-              activeCameras.add({
-                'name': baby.name,
-                'type': 'Static',
-                'profilePicture': baby.profilePicture,
-                'ip': baby.staticCameraIp,
-              });
-            }
-            if (baby.camera2On && baby.headCameraIp != null) {
-              activeCameras.add({
-                'name': baby.name,
-                'type': 'Head',
-                'profilePicture': baby.profilePicture,
-                'ip': baby.headCameraIp,
-              });
-            }
-          }
-          return Column(
-            children: [
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: ElevatedButton.icon(
-                  onPressed: _toggleDetectionSystem,
-                  icon: Icon(
-                    _detectionSystemActive
-                        ? Icons.security
-                        : Icons.security_outlined,
-                    color: _detectionSystemActive ? Colors.green : Colors.grey,
-                  ),
-                  label: Text(
-                    _detectionSystemActive
-                        ? 'Detection System Active'
-                        : 'Activate Detection System',
-                    style: TextStyle(
-                      color:
-                          _detectionSystemActive ? Colors.green : Colors.grey,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 16),
-                    backgroundColor: _detectionSystemActive
-                        ? Colors.green.withOpacity(0.1)
-                        : null,
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: Column(
+    return Stack(
+      children: [
+        AbsorbPointer(
+          absorbing: _cameraConnectionInProgress,
+          child: Scaffold(
+            appBar: buildCameraAppBar(
+              onGridView: _navigateToAllCameras,
+              onResetCameras: _resetAllCameras,
+            ),
+            body: FutureBuilder<List<BabyProfile>>(
+              future: _babiesFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('No babies found.'));
+                }
+                final babies = snapshot.data!;
+                final List<Map<String, dynamic>> activeCameras = [];
+                for (final baby in babies) {
+                  if (baby.camera1On && baby.staticCameraIp != null) {
+                    activeCameras.add({
+                      'name': baby.name,
+                      'type': 'Static',
+                      'profilePicture': baby.profilePicture,
+                      'ip': baby.staticCameraIp,
+                    });
+                  }
+                  if (baby.camera2On && baby.headCameraIp != null) {
+                    activeCameras.add({
+                      'name': baby.name,
+                      'type': 'Head',
+                      'profilePicture': baby.profilePicture,
+                      'ip': baby.headCameraIp,
+                    });
+                  }
+                }
+                return Column(
                   children: [
-                    Expanded(
-                      child: CameraGrid(
-                        babies: babies,
-                        onCameraConnection: _handleCameraConnection,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (activeCameras.isNotEmpty)
-                      Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 12.0),
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 8,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: ElevatedButton.icon(
+                        onPressed: _toggleDetectionSystem,
+                        icon: Icon(
+                          _detectionSystemActive
+                              ? Icons.security
+                              : Icons.security_outlined,
+                          color: _detectionSystemActive
+                              ? Colors.green
+                              : Colors.grey,
                         ),
-                        child: SizedBox(
-                          height: 250,
-                          child:
-                              CameraPreviewPager(activeCameras: activeCameras),
-                        ),
-                      ),
-                    if (activeCameras.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 32.0, bottom: 16.0),
-                        child: Text(
-                          'No active cameras',
+                        label: Text(
+                          _detectionSystemActive
+                              ? 'Detection System Active'
+                              : 'Activate Detection System',
                           style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
+                            color: _detectionSystemActive
+                                ? Colors.green
+                                : Colors.grey,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 16),
+                          backgroundColor: _detectionSystemActive
+                              ? Colors.green.withOpacity(0.1)
+                              : null,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
                           ),
                         ),
                       ),
+                    ),
                     const SizedBox(height: 16),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: CameraGrid(
+                              babies: babies,
+                              onCameraConnection: _handleCameraConnection,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          if (activeCameras.isNotEmpty)
+                            Container(
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 12.0),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 8.0),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 8,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: SizedBox(
+                                height: 250,
+                                child: CameraPreviewPager(
+                                    activeCameras: activeCameras),
+                              ),
+                            ),
+                          if (activeCameras.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  top: 32.0, bottom: 16.0),
+                              child: Text(
+                                'No active cameras',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                    ),
                   ],
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+                );
+              },
+            ),
+          ),
+        ),
+        if (_cameraConnectionInProgress) const _CameraConnectingOverlay(),
+      ],
     );
   }
 
   void _navigateToAllCameras() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('All cameras view not implemented yet')),
+    );
+  }
+}
+
+class _CameraConnectingOverlay extends StatelessWidget {
+  const _CameraConnectingOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black45,
+      alignment: Alignment.center,
+      child: const _PleaseWaitMessage(),
+    );
+  }
+}
+
+class _PleaseWaitMessage extends StatefulWidget {
+  const _PleaseWaitMessage();
+
+  @override
+  State<_PleaseWaitMessage> createState() => _PleaseWaitMessageState();
+}
+
+class _PleaseWaitMessageState extends State<_PleaseWaitMessage> {
+  late Timer _timer;
+  int _dotCount = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _dotCount = _dotCount % 3 + 1;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dots = '.' * _dotCount;
+    return Text(
+      'Please wait$dots',
+      style: const TextStyle(color: Colors.white, fontSize: 18),
     );
   }
 }
