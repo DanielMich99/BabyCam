@@ -185,44 +185,6 @@ class _ManageDangerousObjectsScreenState
     });
   }
 
-  bool _hasPendingChanges() {
-    return _pendingAdditions.isNotEmpty ||
-        _pendingDeletions.isNotEmpty ||
-        _pendingUpdates.isNotEmpty ||
-        _pendingRiskLevelUpdates.isNotEmpty;
-  }
-
-  Future<bool> _onWillPop() async {
-    if (!_hasPendingChanges()) {
-      return true; // Allow navigation
-    }
-
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Unsaved Changes'),
-        content: const Text(
-          'You have unsaved changes that will be lost if you leave this screen. Are you sure you want to continue?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
-            child: const Text('Leave'),
-          ),
-        ],
-      ),
-    );
-
-    return result ?? false;
-  }
-
   Future<void> _updateModel(BuildContext context) async {
     if (_pendingAdditions.isEmpty &&
         _pendingDeletions.isEmpty &&
@@ -321,112 +283,110 @@ class _ManageDangerousObjectsScreenState
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('Manage Dangerous Objects (${widget.cameraType})'),
-        ),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ElevatedButton(
-                  onPressed: () => _startAddObjectFlow(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.blue,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30)),
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    side: const BorderSide(color: Colors.transparent),
-                  ),
-                  child: const Text('Add Object Class',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Colors.blue)),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+            'Manage Dangerous Objects (${widget.cameraType})'),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ElevatedButton(
+                onPressed: () => _startAddObjectFlow(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.blue,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  side: const BorderSide(color: Colors.transparent),
                 ),
-                const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: () => _openDangerousObjectListDialog(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.blue,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30)),
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    side: const BorderSide(color: Colors.transparent),
-                  ),
-                  child: const Text('View Dangerous Objects',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Colors.blue)),
+                child: const Text('Add Object Class',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.blue)),
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: () => _openDangerousObjectListDialog(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.blue,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  side: const BorderSide(color: Colors.transparent),
                 ),
-                const SizedBox(height: 32),
-                PendingAdditionsCard(
-                  pendingAdditions: _pendingAdditions,
-                  onEdit: (index) => _startAddObjectFlow(context,
-                      editClass: _pendingAdditions[index], editIndex: index),
-                  onRemove: _removePendingAddition,
+                child: const Text('View Dangerous Objects',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.blue)),
+              ),
+              const SizedBox(height: 32),
+              PendingAdditionsCard(
+                pendingAdditions: _pendingAdditions,
+                onEdit: (index) => _startAddObjectFlow(context,
+                    editClass: _pendingAdditions[index], editIndex: index),
+                onRemove: _removePendingAddition,
+              ),
+              if (_pendingAdditions.isNotEmpty) const SizedBox(height: 24),
+              PendingRiskLevelUpdatesCard(
+                pendingRiskLevelUpdates: _pendingRiskLevelUpdates,
+                onUndo: _removePendingRiskLevelUpdate,
+              ),
+              if (_pendingRiskLevelUpdates.isNotEmpty)
+                const SizedBox(height: 24),
+              PendingUpdatesCard(
+                pendingUpdates: _pendingUpdates,
+                onEdit: (index) => _startAddObjectFlow(context,
+                    editClass: _pendingUpdates[index], editIndex: index),
+                onRemove: _removePendingUpdate,
+              ),
+              if (_pendingUpdates.isNotEmpty) const SizedBox(height: 24),
+              PendingDeletionsCard(
+                pendingDeletions: _pendingDeletions,
+                onUndo: _undoPendingDeletion,
+              ),
+              if (_pendingDeletions.isNotEmpty) const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => _updateModel(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
                 ),
-                if (_pendingAdditions.isNotEmpty) const SizedBox(height: 24),
-                PendingRiskLevelUpdatesCard(
-                  pendingRiskLevelUpdates: _pendingRiskLevelUpdates,
-                  onUndo: _removePendingRiskLevelUpdate,
+                child: const Text('Update Model',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _showClassSuggestions,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.blue,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
+                  side: const BorderSide(color: Colors.blue),
                 ),
-                if (_pendingRiskLevelUpdates.isNotEmpty)
-                  const SizedBox(height: 24),
-                PendingUpdatesCard(
-                  pendingUpdates: _pendingUpdates,
-                  onEdit: (index) => _startAddObjectFlow(context,
-                      editClass: _pendingUpdates[index], editIndex: index),
-                  onRemove: _removePendingUpdate,
-                ),
-                if (_pendingUpdates.isNotEmpty) const SizedBox(height: 24),
-                PendingDeletionsCard(
-                  pendingDeletions: _pendingDeletions,
-                  onUndo: _undoPendingDeletion,
-                ),
-                if (_pendingDeletions.isNotEmpty) const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () => _updateModel(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30)),
-                  ),
-                  child: const Text('Update Model',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _showClassSuggestions,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.blue,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30)),
-                    side: const BorderSide(color: Colors.blue),
-                  ),
-                  child: const Text('Get Class Suggestions',
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue)),
-                ),
-              ],
-            ),
+                child: const Text('Get Class Suggestions',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue)),
+              ),
+            ],
           ),
         ),
       ),

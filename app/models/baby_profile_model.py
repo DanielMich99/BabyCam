@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, JSON, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, JSON, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -26,6 +26,9 @@ class BabyProfile(Base):
 
     head_camera_ip = Column(String(100), nullable=True)  # IP address of the head-mounted camera
     static_camera_ip = Column(String(100), nullable=True)  # IP address of the static room camera
+
+    head_camera_on = Column(Boolean, nullable=False, default=False)  # Connection state of head camera
+    static_camera_on = Column(Boolean, nullable=False, default=False)  # Connection state of static camera
 
     head_camera_model_last_updated_time = Column(DateTime, nullable=True, default=None)
     static_camera_model_last_updated_time = Column(DateTime, nullable=True, default=None)
