@@ -33,6 +33,9 @@ class BabyProfile(Base):
     head_camera_model_last_updated_time = Column(DateTime, nullable=True, default=None)
     static_camera_model_last_updated_time = Column(DateTime, nullable=True, default=None)
 
+    head_camera_in_detection_system_on = Column(Boolean, nullable=False, default=False)
+    static_camera_in_detection_system_on = Column(Boolean, nullable=False, default=False)
+
     # Relationships
     detection_results = relationship("DetectionResult", back_populates="baby_profile")  # List of detection results linked to this profile
     classes = relationship("ClassObject", back_populates="baby_profile")  # List of object classes defined for this profile

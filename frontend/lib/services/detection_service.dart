@@ -113,7 +113,7 @@ class DetectionService {
     };
 
     final response = await http.delete(
-      Uri.parse(AppConfig.getUrl('${AppConfig.detectionResultsEndpoint}/bulk')),
+      Uri.parse(AppConfig.getUrl('${AppConfig.detectionResultsEndpoint}/batch_delete')),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',

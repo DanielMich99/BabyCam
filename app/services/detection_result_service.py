@@ -4,6 +4,7 @@ from app.models.baby_profile_model import BabyProfile
 from app.models.class_model import ClassObject
 from app.schemas import detection_result_schema
 import os
+from fastapi import HTTPException
 
 # יצירה (השרת בלבד)
 def create_detection_result(db: Session, data: detection_result_schema.DetectionResultCreate):
@@ -128,3 +129,49 @@ def delete_detection_result_by_user(db: Session, detection_id: int, user_id: int
         risk_level=db_result.class_.risk_level,
         image_path=db_result.image_path
     )
+
+def batch_delete_detection_results_by_user(db: Session, user_id: int, alerts_by_baby: dict):
+    # Convert string keys to int (from JSON)
+    try:
+        baby_ids = [int(bid) for bid in alerts_by_baby.keys()]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid baby profile ID in request (must be integers)")
+
+    # Check if user owns all the baby profiles
+    owned_profiles = db.query(BabyProfile.id).filter(
+        BabyProfile.user_id == user_id,
+        BabyProfile.id.in_(baby_ids)
+    ).all()
+    owned_ids = {row.id for row in owned_profiles}
+
+    unauthorized = set(baby_ids) - owned_ids
+    if unauthorized:
+        raise HTTPException(status_code=403, detail=f"Unauthorized access to baby profile(s): {list(unauthorized)}")
+
+    # Delete detections
+    deleted_results = []
+
+    for baby_id_str, alert_ids in alerts_by_baby.items():
+        baby_id = int(baby_id_str)
+        for alert_id in alert_ids:
+            detection = db.query(DetectionResult).join(BabyProfile).filter(
+                DetectionResult.id == alert_id,
+                DetectionResult.baby_profile_id == baby_id,
+                BabyProfile.user_id == user_id
+            ).first()
+
+            if detection:
+                if detection.image_path:
+                    file_path = os.path.join("uploads", detection.image_path)
+                    if os.path.exists(file_path):
+                        try:
+                            os.remove(file_path)
+                        except Exception as e:
+                            print(f"Failed to delete image file: {e}")
+                deleted_results.append(detection)
+                db.delete(detection)
+
+    db.commit()
+    return {"deleted_count": len(deleted_results)}
+
+

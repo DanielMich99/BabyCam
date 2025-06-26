@@ -40,6 +40,16 @@ def get_detection_result(detection_id: int, current_user: User = Depends(get_cur
 def delete_detection_result(detection_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return detection_result_controller.delete_detection_result_by_user_controller(db, detection_id, current_user.id)
 
+@router.post("/batch_delete")
+def batch_delete_detection_results(
+    payload: detection_result_schema.BatchDeleteRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return detection_result_controller.batch_delete_detection_results_by_user_controller(
+        db, current_user.id, payload.alerts_by_baby
+    )
+
 @router.get("/{detection_id}/image")
 def get_detection_image(
     detection_id: int,

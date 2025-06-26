@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Request
 from sqlalchemy.orm import Session
 
 from app.controllers.auth_controller import (
@@ -6,11 +6,13 @@ from app.controllers.auth_controller import (
     login_user,
     refresh_access_token,
     save_fcm_token,
-    delete_fcm_token_controller
+    delete_fcm_token_controller,
+    logout_user_controller
 )
 from database.database import get_db
-from app.schemas.auth_schemas import RegisterRequest, LoginRequest, FCMTokenRequest
+from app.schemas.auth_schemas import RegisterRequest, LoginRequest, FCMTokenRequest, LogoutRequest
 from app.services.auth_service import get_current_user
+from app.models.user_model import User
 
 
 router = APIRouter()
@@ -63,3 +65,12 @@ def remove_fcm_token(
     Remove the user's FCM device token from the database.
     """
     return delete_fcm_token_controller(token_request.token, db, current_user)
+
+@router.post("/logout")
+async def logout_user(
+    data: LogoutRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return await logout_user_controller(db, current_user, data, request)
