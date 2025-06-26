@@ -8,6 +8,7 @@ import '../services/user_service.dart';
 import '../services/websocket_service.dart';
 import '../services/dangerous_objects_service.dart';
 import '../services/model_training_status_service.dart';
+import '../services/class_suggestion_service.dart';
 
 class ManageDangerousObjectsScreen extends StatefulWidget {
   final int babyProfileId;
@@ -31,6 +32,7 @@ class _ManageDangerousObjectsScreenState
   final List<Map<String, dynamic>> _pendingRiskLevelUpdates = [];
   final _websocketService = WebSocketService();
   final _dangerousObjectsService = DangerousObjectsService();
+  final _classSuggestionService = ClassSuggestionService();
 
   @override
   void initState() {
@@ -272,6 +274,51 @@ class _ManageDangerousObjectsScreenState
     }
   }
 
+  Future<void> _showClassSuggestions() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final suggestions = await _classSuggestionService.getClassSuggestions(
+        babyProfileId: widget.babyProfileId,
+        cameraType: widget.cameraType == 'Head Camera'
+            ? 'head_camera'
+            : 'static_camera',
+      );
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // remove loading
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Suggested Classes'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView(
+              shrinkWrap: true,
+              children:
+                  suggestions.map((c) => ListTile(title: Text(c))).toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      Navigator.of(context).pop(); // remove loading
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -359,6 +406,24 @@ class _ManageDangerousObjectsScreenState
                   child: const Text('Update Model',
                       style:
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _showClassSuggestions,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.blue,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30)),
+                    side: const BorderSide(color: Colors.blue),
+                  ),
+                  child: const Text('Get Class Suggestions',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue)),
                 ),
               ],
             ),

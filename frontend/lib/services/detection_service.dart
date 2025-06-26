@@ -80,7 +80,8 @@ class DetectionService {
     if (token == null) throw Exception('Not authenticated');
 
     final response = await http.get(
-      Uri.parse(AppConfig.getUrl('${AppConfig.detectionResultsEndpoint}/$id/image')),
+      Uri.parse(
+          AppConfig.getUrl('${AppConfig.detectionResultsEndpoint}/$id/image')),
       headers: {
         'Authorization': 'Bearer $token',
       },
@@ -90,6 +91,38 @@ class DetectionService {
       return response.bodyBytes;
     } else {
       throw Exception('Failed to load detection image');
+    }
+  }
+
+  // Bulk delete alerts grouped by baby profile
+  // Request body format:
+  // {
+  //   "alerts_by_baby": {
+  //     "babyId1": [alertId1, alertId2],
+  //     "babyId2": [alertId3, alertId4]
+  //   }
+  // }
+  Future<void> bulkDeleteAlertsByBaby(Map<int, List<int>> alertsByBaby) async {
+    final token = await _getAuthToken();
+    if (token == null) throw Exception('Not authenticated');
+
+    // Convert int keys to strings for JSON serialization
+    final Map<String, dynamic> requestBody = {
+      'alerts_by_baby':
+          alertsByBaby.map((key, value) => MapEntry(key.toString(), value)),
+    };
+
+    final response = await http.delete(
+      Uri.parse(AppConfig.getUrl('${AppConfig.detectionResultsEndpoint}/bulk')),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: json.encode(requestBody),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to bulk delete alerts');
     }
   }
 }
