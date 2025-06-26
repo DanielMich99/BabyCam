@@ -6,6 +6,7 @@ import '../services/auth_service.dart';
 import '../services/auth_state.dart';
 import '../services/websocket_service.dart';
 import '../services/model_training_status_service.dart';
+import '../services/notification_service.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
 import '../components/auth/logo_header.dart';
@@ -168,6 +169,33 @@ class _LoginScreenState extends State<LoginScreen> {
                 SocialLoginButtons(
                   onGoogleSignIn: _handleGoogleSignIn,
                   onFacebookSignIn: _handleFacebookSignIn,
+                ),
+                const SizedBox(height: 24),
+                // Test notification button
+                ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      await NotificationService().showTestNotification();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Test notification sent!'),
+                            backgroundColor: Colors.blue,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Test Notification'),
                 ),
                 const SizedBox(height: 24),
                 Row(

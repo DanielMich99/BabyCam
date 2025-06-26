@@ -1,0 +1,35 @@
+{
+  "project_info": {
+    "project_number": "1038943709092",
+    "project_id": "babycam-biu",
+    "storage_bucket": "babycam-biu.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1038943709092:android:e88835757705efcbb1c331",
+        "android_client_info": {
+          "package_name": "com.example.frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWoaq8AYDireMFrli-VAh43M8LRYVGPOc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1",
+  "android": {
+    "priority": "high",
+    "notification": {
+      "channel_id": "high_importance_channel"
+    }
+  }
+}

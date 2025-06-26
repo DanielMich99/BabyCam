@@ -60,43 +60,86 @@ def send_push_notifications(tokens: list[str], title: str, body: str, project_id
     }
 
     for token in tokens:
+        # Simplified message structure to avoid 400 errors
         message = {
             "message": {
                 "token": token,
                 "notification": {
                     "title": title,
                     "body": body
+                },
+                "android": {
+                    "priority": "high",
+                    "notification": {
+                        "channel_id": "high_importance_channel",
+                        "default_sound": True,
+                        "default_vibrate_timings": True,
+                        "default_light_settings": True
+                    }
+                },
+                "apns": {
+                    "payload": {
+                        "aps": {
+                            "sound": "notification_sound.aiff",
+                            "badge": 1,
+                            "alert": {
+                                "title": title,
+                                "body": body
+                            }
+                        }
+                    }
+                },
+                "data": {
+                    "click_action": "FLUTTER_NOTIFICATION_CLICK",
+                    "type": "detection_alert"
                 }
             }
         }
+        
         try:
+            print(f"[FCM DEBUG] Sending message to token: {token[:20]}...")
+            print(f"[FCM DEBUG] Message payload: {json.dumps(message, indent=2)}")
+            
             response = requests.post(url, headers=headers, data=json.dumps(message))
-            response.raise_for_status()
-            resp_json = response.json()
-
-            # בדיקה אם FCM מחזיר שגיאה בתוך תגובה תקינה
-            if 'error' in resp_json:
-                error_message = resp_json['error'].get('message', '').lower()
-                if 'requested entity was not found' in error_message or 'notregistered' in error_message:
-                    print("[FCM REMOVE] Invalid token detected:", token)
-                    _delete_token_from_db(token)
-
-                else:
-                    print("[FCM ERROR] Other FCM error:", resp_json['error'])
+            
+            print(f"[FCM DEBUG] Response status: {response.status_code}")
+            print(f"[FCM DEBUG] Response headers: {dict(response.headers)}")
+            
+            if response.status_code != 200:
+                print(f"[FCM ERROR] HTTP {response.status_code}: {response.text}")
+                try:
+                    error_json = response.json()
+                    print(f"[FCM ERROR] Error details: {json.dumps(error_json, indent=2)}")
+                    
+                    # Check for specific error types
+                    if 'error' in error_json:
+                        error_message = error_json['error'].get('message', '').lower()
+                        if 'requested entity was not found' in error_message or 'notregistered' in error_message:
+                            print("[FCM REMOVE] Invalid token detected:", token)
+                            _delete_token_from_db(token)
+                        elif 'invalid argument' in error_message:
+                            print("[FCM ERROR] Invalid message format - check payload structure")
+                        else:
+                            print(f"[FCM ERROR] Other FCM error: {error_json['error']}")
+                except Exception as parse_err:
+                    print(f"[FCM ERROR] Failed to parse error response: {parse_err}")
+                    print(f"[FCM ERROR] Raw response: {response.text}")
             else:
                 print("[FCM SUCCESS] Notification sent to", token)
                 
         except requests.exceptions.RequestException as e:
-            print("[FCM EXCEPTION] HTTP error for token", token, "->", e)
-
-            try:
-                resp_json = response.json()
-                error_message = resp_json.get('error', {}).get('message', '').lower()
-                if 'requested entity was not found' in error_message or 'notregistered' in error_message:
-                    print("[FCM REMOVE] Invalid token detected (from error response):", token)
-                    _delete_token_from_db(token)
-            except Exception as parse_err:
-                print("[FCM ERROR] Failed to parse error response:", parse_err)
+            print(f"[FCM EXCEPTION] HTTP error for token {token[:20]}... -> {e}")
+            
+            # Try to get error details if response exists
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_json = e.response.json()
+                    error_message = error_json.get('error', {}).get('message', '').lower()
+                    if 'requested entity was not found' in error_message or 'notregistered' in error_message:
+                        print("[FCM REMOVE] Invalid token detected (from exception):", token)
+                        _delete_token_from_db(token)
+                except Exception as parse_err:
+                    print(f"[FCM ERROR] Failed to parse exception response: {parse_err}")
 
 def _delete_token_from_db(token: str):
     try:

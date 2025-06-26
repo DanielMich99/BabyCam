@@ -1,9 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'screens/login_screen.dart';
 import 'services/websocket_service.dart';
 import 'services/auth_state.dart';
+import 'services/notification_service.dart';
 
-void main() {
+// This function must be a top-level function
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print('Handling background message: ${message.notification?.title}');
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp();
+
+  // Set background message handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
   runApp(const MyApp());
 }
 
@@ -16,11 +33,18 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   final WebSocketService _webSocketService = WebSocketService();
+  final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _initializeServices();
+  }
+
+  Future<void> _initializeServices() async {
+    // Initialize notification service
+    await _notificationService.initialize();
   }
 
   @override
