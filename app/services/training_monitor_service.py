@@ -106,8 +106,7 @@ def polling_loop():
 def start_monitoring_thread():
     thread = threading.Thread(target=polling_loop, daemon=True)
     thread.start()
-
-
+    
 def check_and_download_model(baby_profile_id: int, camera_type: str, start_time: float) -> bool:
     file_name = f"{baby_profile_id}_{camera_type}_model.pt"
     local_path = os.path.join("uploads", "training_data", str(baby_profile_id), camera_type, file_name)

@@ -19,6 +19,7 @@ class UserUpdate(BaseModel):
 class UserOut(UserBase):
     id: int
     fcm_token: Optional[str] = None
+    already_logged_in: Optional[bool] = None
 
     class Config:
         from_attrributes = True
