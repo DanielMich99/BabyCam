@@ -33,6 +33,9 @@ class _LoginScreenState extends State<LoginScreen> {
     await _websocketService.initialize(
         AppConfig.baseUrl.replaceFirst(RegExp(r'^https?://'), ''), token);
     ModelTrainingStatusService().initialize(_websocketService);
+
+    // Re-initialize notification service to ensure FCM token is registered
+    await NotificationService().reinitialize();
   }
 
   Future<void> _handleGoogleSignIn() async {

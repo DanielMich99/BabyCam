@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'notification_service.dart';
+import 'auth_service.dart';
 
 class AuthState {
   static const String _tokenKey = 'auth_token';
@@ -70,6 +71,37 @@ class AuthState {
       await NotificationService().removeToken();
     } catch (e) {
       print('Error removing FCM token on clear all: $e');
+    }
+  }
+
+  // New method for proper logout with backend integration
+  static Future<void> logout() async {
+    try {
+      final authService = AuthService();
+      final notificationService = NotificationService();
+
+      // Get baby profiles and FCM token
+      final babies = await authService.getBabyProfiles();
+      final fcmToken = await notificationService.getFCMToken();
+
+      if (fcmToken != null) {
+        // Call backend logout endpoint
+        final babyProfileIds = babies.map((baby) => baby.id).toList();
+        await authService.logout(
+          babyProfileIds: babyProfileIds,
+          fcmToken: fcmToken,
+        );
+      }
+
+      // Clear local auth state
+      await clearAuth();
+
+      // Remove FCM token from backend
+      await notificationService.removeToken();
+    } catch (e) {
+      print('Error during logout: $e');
+      // Even if backend logout fails, clear local state
+      await clearAuth();
     }
   }
 }

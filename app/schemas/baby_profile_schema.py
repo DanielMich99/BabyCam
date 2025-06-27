@@ -22,6 +22,8 @@ class BabyProfileBase(BaseModel):
     static_camera_on: Optional[bool] = False  # Connection state of static camera
     head_camera_model_last_updated_time: Optional[datetime] = None
     static_camera_model_last_updated_time: Optional[datetime] = None
+    head_camera_in_detection_system_on: Optional[bool] = False  # Detection system state for head camera
+    static_camera_in_detection_system_on: Optional[bool] = False  # Detection system state for static camera
 
 
 class BabyProfileCreate(BabyProfileBase):
@@ -47,6 +49,8 @@ class BabyProfileUpdate(BaseModel):
     static_camera_on: Optional[bool] = None
     head_camera_model_last_updated_time: Optional[datetime] = None
     static_camera_model_last_updated_time: Optional[datetime] = None
+    head_camera_in_detection_system_on: Optional[bool] = None  # Detection system state for head camera
+    static_camera_in_detection_system_on: Optional[bool] = None  # Detection system state for static camera
 
 
 class BabyProfileOut(BabyProfileBase):

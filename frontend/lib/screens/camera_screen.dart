@@ -19,7 +19,6 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   late Future<List<BabyProfile>> _babiesFuture;
-  bool _detectionSystemActive = false;
   final _websocketService = WebSocketService();
   final _monitoringService = MonitoringService();
   bool _cameraConnectionInProgress = false;
@@ -31,7 +30,6 @@ class _CameraScreenState extends State<CameraScreen> {
     _websocketService.addDetectionListener(_handleDetection);
     _websocketService.addDetectionListener(_handleCameraEvents);
     _monitoringService.addStateListener(_onDetectionStateChanged);
-    _detectionSystemActive = _monitoringService.isDetectionActive;
   }
 
   @override
@@ -42,12 +40,22 @@ class _CameraScreenState extends State<CameraScreen> {
     super.dispose();
   }
 
-  void _handleDetection(Map<String, dynamic> detection) {
-    if (!_detectionSystemActive || !mounted) return;
+  void _handleDetection(Map<String, dynamic> detection) async {
+    if (!mounted) return;
+
+    // Check if detection system is currently active
+    try {
+      final babies = await _babiesFuture;
+      if (!_isDetectionSystemActive(babies)) return;
+    } catch (e) {
+      return; // If we can't check the status, don't show notification
+    }
+
+    final type = detection['type'];
+    final confidence = detection['confidence'];
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-            'Detection: ${detection['type']} - ${detection['confidence']}%'),
+        content: Text('Detection: $type - $confidence%'),
         backgroundColor: Colors.red,
         duration: const Duration(seconds: 3),
         action: SnackBarAction(
@@ -86,9 +94,15 @@ class _CameraScreenState extends State<CameraScreen> {
   void _onDetectionStateChanged() {
     if (mounted) {
       setState(() {
-        _detectionSystemActive = _monitoringService.isDetectionActive;
+        // Refresh the babies data to get updated detection system status
+        _babiesFuture = fetchBabies();
       });
     }
+  }
+
+  // Check if any baby profile has detection system active
+  bool _isDetectionSystemActive(List<BabyProfile> babies) {
+    return babies.any((baby) => baby.hasDetectionSystemActive);
   }
 
   Future<void> _toggleDetectionSystem() async {
@@ -125,12 +139,11 @@ class _CameraScreenState extends State<CameraScreen> {
         return;
       }
 
-      if (!_detectionSystemActive) {
+      final isCurrentlyActive = _isDetectionSystemActive(babies);
+
+      if (!isCurrentlyActive) {
         // Start monitoring
         await _monitoringService.startMonitoring(cameraProfiles);
-        setState(() {
-          _detectionSystemActive = true;
-        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Detection System Activated'),
@@ -140,9 +153,6 @@ class _CameraScreenState extends State<CameraScreen> {
       } else {
         // Stop monitoring
         await _monitoringService.stopMonitoring(cameraProfiles);
-        setState(() {
-          _detectionSystemActive = false;
-        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Detection System Deactivated'),
@@ -150,6 +160,11 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
         );
       }
+
+      // Refresh the babies data to get updated detection system status
+      setState(() {
+        _babiesFuture = fetchBabies();
+      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -306,19 +321,19 @@ class _CameraScreenState extends State<CameraScreen> {
                       child: ElevatedButton.icon(
                         onPressed: _toggleDetectionSystem,
                         icon: Icon(
-                          _detectionSystemActive
+                          _isDetectionSystemActive(babies)
                               ? Icons.security
                               : Icons.security_outlined,
-                          color: _detectionSystemActive
+                          color: _isDetectionSystemActive(babies)
                               ? Colors.green
                               : Colors.grey,
                         ),
                         label: Text(
-                          _detectionSystemActive
+                          _isDetectionSystemActive(babies)
                               ? 'Detection System Active'
                               : 'Activate Detection System',
                           style: TextStyle(
-                            color: _detectionSystemActive
+                            color: _isDetectionSystemActive(babies)
                                 ? Colors.green
                                 : Colors.grey,
                           ),
@@ -326,7 +341,7 @@ class _CameraScreenState extends State<CameraScreen> {
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 24, vertical: 16),
-                          backgroundColor: _detectionSystemActive
+                          backgroundColor: _isDetectionSystemActive(babies)
                               ? Colors.green.withOpacity(0.1)
                               : null,
                           elevation: 2,

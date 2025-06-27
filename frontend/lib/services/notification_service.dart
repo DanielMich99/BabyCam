@@ -17,8 +17,6 @@ class NotificationService {
   bool _isInitialized = false;
 
   Future<void> initialize() async {
-    if (_isInitialized) return;
-
     try {
       // Initialize Firebase
       await Firebase.initializeApp();
@@ -251,6 +249,22 @@ class NotificationService {
     } catch (e) {
       print('Error removing FCM token: $e');
     }
+  }
+
+  // Get the current FCM token
+  Future<String?> getFCMToken() async {
+    try {
+      return await _firebaseMessaging.getToken();
+    } catch (e) {
+      print('Error getting FCM token: $e');
+      return null;
+    }
+  }
+
+  // Force re-initialization and FCM token registration
+  Future<void> reinitialize() async {
+    _isInitialized = false;
+    await initialize();
   }
 
   // Test method to show a local notification
