@@ -9,6 +9,7 @@ import '../../components/camera/camera_app_bar.dart';
 import '../../components/camera/camera_grid.dart';
 import '../../components/camera/camera_preview_pager.dart';
 import '../../components/camera/camera_helpers.dart';
+import 'command_center_screen.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({Key? key}) : super(key: key);
@@ -414,8 +415,11 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void _navigateToAllCameras() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('All cameras view not implemented yet')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CommandCenterScreen(),
+      ),
     );
   }
 }

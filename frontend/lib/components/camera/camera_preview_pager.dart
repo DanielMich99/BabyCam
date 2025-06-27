@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'video_stream_player.dart';
+import 'full_screen_video_stream.dart';
 
 class CameraPreviewPager extends StatelessWidget {
   final List<Map<String, dynamic>> activeCameras;
@@ -31,9 +32,22 @@ class CameraPreviewPager extends StatelessWidget {
                     child: ClipRRect(
                       borderRadius:
                           const BorderRadius.vertical(top: Radius.circular(20)),
-                      child: VideoStreamPlayer(
-                        streamUrl: 'http://${cam['ip']}:80/stream',
-                        isActive: true,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FullScreenVideoStream(
+                                streamUrl: 'http://${cam['ip']}:80/stream',
+                                title: '${cam['name']} - ${cam['type']} Camera',
+                              ),
+                            ),
+                          );
+                        },
+                        child: VideoStreamPlayer(
+                          streamUrl: 'http://${cam['ip']}:80/stream',
+                          isActive: true,
+                        ),
                       ),
                     ),
                   ),
@@ -52,24 +66,26 @@ class CameraPreviewPager extends StatelessWidget {
                               : null,
                         ),
                         const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              cam['name'],
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                cam['name'],
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            Text(
-                              '${cam['type']} Camera',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.blueGrey,
+                              Text(
+                                '${cam['type']} Camera',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blueGrey,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
