@@ -7,6 +7,8 @@ import '../screens/dangerous_object_list_dialog.dart';
 import '../services/user_service.dart';
 import '../services/websocket_service.dart';
 import '../services/dangerous_objects_service.dart';
+import '../services/model_training_status_service.dart';
+import '../services/class_suggestion_service.dart';
 
 class ManageDangerousObjectsScreen extends StatefulWidget {
   final int babyProfileId;
@@ -30,6 +32,7 @@ class _ManageDangerousObjectsScreenState
   final List<Map<String, dynamic>> _pendingRiskLevelUpdates = [];
   final _websocketService = WebSocketService();
   final _dangerousObjectsService = DangerousObjectsService();
+  final _classSuggestionService = ClassSuggestionService();
 
   @override
   void initState() {
@@ -68,6 +71,10 @@ class _ManageDangerousObjectsScreenState
         fullscreenDialog: true,
         builder: (context) => DangerousObjectListDialog(
           babyProfileId: widget.babyProfileId,
+          cameraType: widget.cameraType == 'Head Camera'
+              ? 'head_camera'
+              : 'static_camera',
+          allowCameraTypeChange: false,
         ),
       ),
     );
@@ -104,15 +111,11 @@ class _ManageDangerousObjectsScreenState
 
   Future<void> _startAddObjectFlow(BuildContext context,
       {Map<String, dynamic>? editClass, int? editIndex}) async {
-    String? cameraType = editClass != null
+    String cameraType = editClass != null
         ? (editClass['modelType'] == 'head_camera_model'
             ? 'Head Camera'
             : 'Static Camera')
-        : await showDialog<String>(
-            context: context,
-            builder: (context) => const CameraTypeSelectionDialog(),
-          );
-    if (cameraType == null) return;
+        : widget.cameraType;
 
     String? objectName = editClass != null
         ? editClass['className']
@@ -182,6 +185,44 @@ class _ManageDangerousObjectsScreenState
     });
   }
 
+  bool _hasPendingChanges() {
+    return _pendingAdditions.isNotEmpty ||
+        _pendingDeletions.isNotEmpty ||
+        _pendingUpdates.isNotEmpty ||
+        _pendingRiskLevelUpdates.isNotEmpty;
+  }
+
+  Future<bool> _onWillPop() async {
+    if (!_hasPendingChanges()) {
+      return true; // Allow navigation
+    }
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Unsaved Changes'),
+        content: const Text(
+          'You have unsaved changes that will be lost if you leave this screen. Are you sure you want to continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Leave'),
+          ),
+        ],
+      ),
+    );
+
+    return result ?? false;
+  }
+
   Future<void> _updateModel(BuildContext context) async {
     if (_pendingAdditions.isEmpty &&
         _pendingDeletions.isEmpty &&
@@ -196,14 +237,24 @@ class _ManageDangerousObjectsScreenState
     );
 
     try {
-      await _dangerousObjectsService.updateModel(
+      final result = await _dangerousObjectsService.updateModel(
         babyProfileId: widget.babyProfileId,
         cameraType: widget.cameraType,
         newClasses: _pendingAdditions,
         updatedClasses: _pendingUpdates,
+        riskLevelUpdates: _pendingRiskLevelUpdates,
         deletedClasses:
             _pendingDeletions.map((obj) => obj['name'] as String).toList(),
       );
+
+      if (result['training_strategy'] == 'retrain' ||
+          result['training_strategy'] == 'finetune') {
+        ModelTrainingStatusService().startTraining(
+            widget.babyProfileId,
+            widget.cameraType == 'Head Camera'
+                ? 'head_camera'
+                : 'static_camera');
+      }
 
       Navigator.of(context).pop(); // Remove loading
       setState(() {
@@ -223,93 +274,159 @@ class _ManageDangerousObjectsScreenState
     }
   }
 
+  Future<void> _showClassSuggestions() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final suggestions = await _classSuggestionService.getClassSuggestions(
+        babyProfileId: widget.babyProfileId,
+        cameraType: widget.cameraType == 'Head Camera'
+            ? 'head_camera'
+            : 'static_camera',
+      );
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // remove loading
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Suggested Classes'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView(
+              shrinkWrap: true,
+              children:
+                  suggestions.map((c) => ListTile(title: Text(c))).toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      Navigator.of(context).pop(); // remove loading
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Manage Dangerous Objects'),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ElevatedButton(
-                onPressed: () => _startAddObjectFlow(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.blue,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30)),
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  side: const BorderSide(color: Colors.transparent),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Manage Dangerous Objects (${widget.cameraType})'),
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ElevatedButton(
+                  onPressed: () => _startAddObjectFlow(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.blue,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30)),
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    side: const BorderSide(color: Colors.transparent),
+                  ),
+                  child: const Text('Add Object Class',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Colors.blue)),
                 ),
-                child: const Text('Add Object Class',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Colors.blue)),
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: () => _openDangerousObjectListDialog(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.blue,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30)),
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  side: const BorderSide(color: Colors.transparent),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: () => _openDangerousObjectListDialog(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.blue,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30)),
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    side: const BorderSide(color: Colors.transparent),
+                  ),
+                  child: const Text('View Dangerous Objects',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Colors.blue)),
                 ),
-                child: const Text('View Dangerous Objects',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Colors.blue)),
-              ),
-              const SizedBox(height: 32),
-              PendingAdditionsCard(
-                pendingAdditions: _pendingAdditions,
-                onEdit: (index) => _startAddObjectFlow(context,
-                    editClass: _pendingAdditions[index], editIndex: index),
-                onRemove: _removePendingAddition,
-              ),
-              if (_pendingAdditions.isNotEmpty) const SizedBox(height: 24),
-              PendingRiskLevelUpdatesCard(
-                pendingRiskLevelUpdates: _pendingRiskLevelUpdates,
-                onUndo: _removePendingRiskLevelUpdate,
-              ),
-              if (_pendingRiskLevelUpdates.isNotEmpty)
-                const SizedBox(height: 24),
-              PendingUpdatesCard(
-                pendingUpdates: _pendingUpdates,
-                onEdit: (index) => _startAddObjectFlow(context,
-                    editClass: _pendingUpdates[index], editIndex: index),
-                onRemove: _removePendingUpdate,
-              ),
-              if (_pendingUpdates.isNotEmpty) const SizedBox(height: 24),
-              PendingDeletionsCard(
-                pendingDeletions: _pendingDeletions,
-                onUndo: _undoPendingDeletion,
-              ),
-              if (_pendingDeletions.isNotEmpty) const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => _updateModel(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30)),
+                const SizedBox(height: 32),
+                PendingAdditionsCard(
+                  pendingAdditions: _pendingAdditions,
+                  onEdit: (index) => _startAddObjectFlow(context,
+                      editClass: _pendingAdditions[index], editIndex: index),
+                  onRemove: _removePendingAddition,
                 ),
-                child: const Text('Update Model',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ),
-            ],
+                if (_pendingAdditions.isNotEmpty) const SizedBox(height: 24),
+                PendingRiskLevelUpdatesCard(
+                  pendingRiskLevelUpdates: _pendingRiskLevelUpdates,
+                  onUndo: _removePendingRiskLevelUpdate,
+                ),
+                if (_pendingRiskLevelUpdates.isNotEmpty)
+                  const SizedBox(height: 24),
+                PendingUpdatesCard(
+                  pendingUpdates: _pendingUpdates,
+                  onEdit: (index) => _startAddObjectFlow(context,
+                      editClass: _pendingUpdates[index], editIndex: index),
+                  onRemove: _removePendingUpdate,
+                ),
+                if (_pendingUpdates.isNotEmpty) const SizedBox(height: 24),
+                PendingDeletionsCard(
+                  pendingDeletions: _pendingDeletions,
+                  onUndo: _undoPendingDeletion,
+                ),
+                if (_pendingDeletions.isNotEmpty) const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => _updateModel(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30)),
+                  ),
+                  child: const Text('Update Model',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _showClassSuggestions,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.blue,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30)),
+                    side: const BorderSide(color: Colors.blue),
+                  ),
+                  child: const Text('Get Class Suggestions',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue)),
+                ),
+              ],
+            ),
           ),
         ),
       ),

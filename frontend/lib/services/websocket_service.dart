@@ -13,11 +13,13 @@ class WebSocketService {
   String? _token;
   Timer? _reconnectTimer;
   bool _isConnected = false;
+  bool _shouldReconnect = false;
   final List<Function(Map<String, dynamic>)> _detectionListeners = [];
 
   Future<void> initialize(String baseUrl, String token) async {
     _baseUrl = baseUrl;
     _token = token;
+    _shouldReconnect = true;
     await connect();
   }
 
@@ -25,13 +27,18 @@ class WebSocketService {
     if (_baseUrl == null || _token == null) {
       throw Exception('WebSocket not initialized. Call initialize() first.');
     }
+    if (!_shouldReconnect) return;
 
     try {
-      final cleanToken = _token!.trim();
-      final uri = Uri.parse('ws://$_baseUrl/ws/detections?token=$cleanToken');
+      final uri = Uri.parse('ws://$_baseUrl/ws/detections');
       print('Connecting to WebSocket: $uri');
 
       _channel = WebSocketChannel.connect(uri);
+
+      // 🔥 Send the token right after connection
+      final cleanToken = _token!.trim();
+      final authMessage = jsonEncode({'token': cleanToken});
+      _channel!.sink.add(authMessage);
 
       _channel!.stream.listen(
         (message) {
@@ -61,16 +68,21 @@ class WebSocketService {
     }
   }
 
-  void disconnect() {
+
+  void disconnect({bool preserveReconnect = false}) {
+    if (!preserveReconnect) {
+      _shouldReconnect = false;
+    }
     _reconnectTimer?.cancel();
     _channel?.sink.close(status.goingAway);
     _isConnected = false;
   }
 
   void _scheduleReconnect() {
+    if (!_shouldReconnect) return;
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer(const Duration(seconds: 5), () {
-      if (!_isConnected) {
+      if (!_isConnected && _shouldReconnect) {
         connect();
       }
     });
@@ -85,4 +97,5 @@ class WebSocketService {
   }
 
   bool get isConnected => _isConnected;
+  bool get shouldReconnect => _shouldReconnect;
 }

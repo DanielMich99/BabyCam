@@ -25,7 +25,7 @@ async def connect_camera(request: CameraConnectionRequest, current_user=Depends(
         raise HTTPException(status_code=403, detail=f"Unauthorized access to baby_profile_id {request.baby_profile_id}")
     success = await wait_for_camera_connection(request.baby_profile_id, request.camera_type)
     if success:
-        return {"status": "connected"}
+        return {"status": "connected", "url": success}
     raise HTTPException(status_code=504, detail="No camera connected within timeout.")
 
 #ניתוק מצלמה ממודל של פרופיל תינוק

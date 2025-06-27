@@ -12,6 +12,7 @@ from app.routes import detection_result_routes
 from app.routes import streams_routes
 from app.routes import realtime_routes
 from app.routes import class_routes
+from app.routes import class_suggestion_routes
 from database.init_db import init_db
 import sys
 import os
@@ -72,6 +73,7 @@ app.include_router(detection_result_routes.router)
 app.include_router(streams_routes.router, prefix="/api/streaming", tags=["Streaming"])
 app.include_router(realtime_routes.router)
 app.include_router(class_routes.router)
+app.include_router(class_suggestion_routes.router)
 
 if __name__ == "__main__":
     import uvicorn

@@ -27,6 +27,9 @@ async def start_monitoring_service(camera_profiles: List[CameraTuple], current_u
 
         session = await start_detection_loop(profile.id, item.camera_type, ip, current_user, model_path, db, camera_profiles)
         active_sessions.append(session)
+        if profile:
+            setattr(profile, f"{item.camera_type}_in_detection_system_on", True)
+            db.commit()    
 
     return {"status": "monitoring_started", "sessions": len(active_sessions)}
 
@@ -35,7 +38,8 @@ async def stop_monitoring_service(camera_profiles: List[CameraTuple], db: Sessio
         await stop_detection_loop(item.baby_profile_id, item.camera_type)
         profile = db.query(BabyProfile).filter_by(id=item.baby_profile_id).first()
         if profile:
-            setattr(profile, f"{item.camera_type}_ip", None)
-            db.commit()
+            #setattr(profile, f"{item.camera_type}_ip", None)
+            setattr(profile, f"{item.camera_type}_in_detection_system_on", False)
+            db.commit()    
 
     return {"status": "monitoring_stopped"}

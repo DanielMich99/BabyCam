@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr
+from typing import List
 
 
 class RegisterRequest(BaseModel):
@@ -20,3 +21,7 @@ class FCMTokenRequest(BaseModel):
     """Request schema for submitting an FCM device token."""
 
     token: str  # Firebase Cloud Messaging token for push notifications
+
+class LogoutRequest(BaseModel):
+    baby_profile_ids: List[int]
+    fcm_token: str

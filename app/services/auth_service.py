@@ -1,17 +1,20 @@
 from datetime import datetime, timedelta, timezone
 import jwt
-from fastapi import Depends, HTTPException, status
+from typing import List
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from database.database import get_db
 from app.models.user_model import User, UserFCMToken
+from app.models.baby_profile_model import BabyProfile
 from app.schemas import user_schema
 from app.schemas.auth_schemas import RegisterRequest
 from app.services.user_service import create_user
 from app.utils.config import config
 from app.utils.hashing import verify_password
+from app.schemas.monitoring_schemas import CameraTuple
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -38,6 +41,11 @@ def authenticate_user(db: Session, username: str, password: str):
     user = db.query(User).filter(User.username == username).first()
     if not user or not verify_password(password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    
+    first_login = not user.already_logged_in
+    if first_login:
+        user.already_logged_in = True
+        db.commit()
 
     access_token = create_access_token(username)
     refresh_token = create_refresh_token(username)
@@ -46,7 +54,8 @@ def authenticate_user(db: Session, username: str, password: str):
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "first_login": first_login
     }
 
 
@@ -123,6 +132,51 @@ def delete_fcm_token(token: str, db: Session, current_user: User):
         db.commit()
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Token not found")
+
+
+async def process_logout(db: Session, user: User, baby_profile_ids: List[int], fcm_token: str, request: Request):
+    # שלב 1: בדיקת בעלות
+    owned_ids = db.query(BabyProfile.id).filter(BabyProfile.user_id == user.id).all()
+    owned_ids_set = {r.id for r in owned_ids}
+    if not set(baby_profile_ids).issubset(owned_ids_set):
+        raise HTTPException(status_code=403, detail="Unauthorized access to baby profile(s)")
+
+    # שלב 2: מחיקת FCM token
+    token_entry = db.query(UserFCMToken).filter_by(user_id=user.id, token=fcm_token).first()
+    if not token_entry:
+        raise HTTPException(status_code=404, detail="FCM token not found")
+    db.delete(token_entry)
+    db.commit()
+
+    # שלב 3: בדיקה אם נשארו טוקנים ליוזר
+    if db.query(UserFCMToken).filter_by(user_id=user.id).count() > 0:
+        return {"status": "partial_logout"}
+
+    # שלב 4: ניהול ניקוי מצלמות וזיהוי
+    profiles = db.query(BabyProfile).filter(BabyProfile.user_id == user.id).all()
+    monitoring_to_stop = []
+
+    for profile in profiles:
+        for cam_type in ["head_camera", "static_camera"]:
+            if getattr(profile, f"{cam_type}_on"):
+                setattr(profile, f"{cam_type}_on", False)
+            if getattr(profile, f"{cam_type}_ip"):
+                setattr(profile, f"{cam_type}_ip", None)
+            if getattr(profile, f"{cam_type}_in_detection_system_on"):
+                setattr(profile, f"{cam_type}_in_detection_system_on", False)
+                monitoring_to_stop.append(CameraTuple(
+                    baby_profile_id=profile.id,
+                    camera_type=cam_type
+                ))
+
+    db.commit()
+
+    # שלב 5: כיבוי זיהוי (מחכה לסיום)
+    if monitoring_to_stop:
+        from app.services.monitoring_service import stop_monitoring_service
+        await stop_monitoring_service(monitoring_to_stop, db)
+
+    return {"status": "logout_successful"}
 
 
 # Get the currently authenticated user from the access token

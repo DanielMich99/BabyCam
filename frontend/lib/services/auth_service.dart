@@ -1,26 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:io' show Platform;
+import '../config/app_config.dart';
 
 class AuthService {
-  // For Android Emulator, use 10.0.2.2 to access host machine's localhost
-  // For iOS Simulator, use 127.0.0.1
-  static final String baseUrl = _getBaseUrl();
-
-  static String _getBaseUrl() {
-    if (kIsWeb) {
-      return 'http://localhost:8000/auth';
-    } else if (Platform.isAndroid) {
-      return 'http://10.0.2.2:8000/auth';
-    } else if (Platform.isIOS) {
-      return 'http://10.0.2.2:8000/auth';
-    } else if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-      return 'http://10.0.2.2:8000/auth';
-    } else {
-      throw UnsupportedError('Unsupported platform');
-    }
-  }
+  static final String baseUrl = '${AppConfig.baseUrl}/auth';
 
   Future<Map<String, dynamic>> register({
     required String email,

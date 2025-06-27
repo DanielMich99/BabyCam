@@ -3,12 +3,17 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/auth_state.dart';
 import '../screens/class_edit_screen.dart';
+import '../config/app_config.dart';
 
 class DangerousObjectListDialog extends StatefulWidget {
   final int babyProfileId;
+  final String cameraType;
+  final bool allowCameraTypeChange;
   const DangerousObjectListDialog({
     Key? key,
     required this.babyProfileId,
+    required this.cameraType,
+    this.allowCameraTypeChange = true,
   }) : super(key: key);
 
   @override
@@ -22,12 +27,13 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
   bool _loading = true;
   String? _error;
   bool _deleteMode = false;
-  String _selectedCameraType = 'head_camera';
+  late String _selectedCameraType;
   final List<Map<String, dynamic>> _pendingRiskLevelUpdates = [];
 
   @override
   void initState() {
     super.initState();
+    _selectedCameraType = widget.cameraType;
     _fetchDangerousObjects();
   }
 
@@ -39,7 +45,7 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
     try {
       final token = await AuthState.getAuthToken();
       if (token == null) throw Exception('Not authenticated');
-      final baseUrl = 'http://10.0.2.2:8000/classes/';
+      final baseUrl = '${AppConfig.baseUrl}/classes/';
       final uri = Uri.parse(
           '$baseUrl?baby_profile_id=${widget.babyProfileId}&camera_type=${Uri.encodeComponent(_selectedCameraType)}');
       final resp =
@@ -68,6 +74,7 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
   }
 
   void _onCameraTypeChanged(String? newValue) {
+    if (!widget.allowCameraTypeChange) return;
     if (newValue != null && newValue != _selectedCameraType) {
       setState(() {
         _selectedCameraType = newValue;
@@ -205,7 +212,9 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dangerous Objects'),
+        title: Text(widget.allowCameraTypeChange
+            ? 'Dangerous Objects'
+            : "Dangerous Objects (${widget.cameraType == 'head_camera' ? 'Head Camera' : 'Static Camera'})"),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: _returnAllChanges,
@@ -227,35 +236,36 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                const Text(
-                  'Camera Type:',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+          if (widget.allowCameraTypeChange)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  const Text(
+                    'Camera Type:',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                DropdownButton<String>(
-                  value: _selectedCameraType,
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'head_camera',
-                      child: Text('Head Camera'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'static_camera',
-                      child: Text('Static Camera'),
-                    ),
-                  ],
-                  onChanged: _onCameraTypeChanged,
-                ),
-              ],
+                  const SizedBox(width: 16),
+                  DropdownButton<String>(
+                    value: _selectedCameraType,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'head_camera',
+                        child: Text('Head Camera'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'static_camera',
+                        child: Text('Static Camera'),
+                      ),
+                    ],
+                    onChanged: _onCameraTypeChanged,
+                  ),
+                ],
+              ),
             ),
-          ),
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())

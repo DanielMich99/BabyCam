@@ -22,3 +22,9 @@ update_class.py
 2_head_camera_model.pt
 migrations/versions/9b116c155b3c_add_classes_table.py
 *.zip
+# Windows/Linux/macOS plugin registration
+frontend/linux/flutter/generated_plugins.cmake
+frontend/windows/flutter/generated_plugins.cmake
+frontend/linux/flutter/generated_plugin_registrant.*
+frontend/windows/flutter/generated_plugin_registrant.*
+frontend/macos/flutter/GeneratedPluginRegistrant.swift

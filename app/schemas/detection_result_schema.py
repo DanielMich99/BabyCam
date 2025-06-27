@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, List
 
 
 class DetectionResultBase(BaseModel):
@@ -28,6 +28,8 @@ class DetectionResultUpdate(BaseModel):
     camera_type: Optional[str] = None  # Updated camera type
     timestamp: Optional[datetime] = None  # Updated timestamp
 
+class BatchDeleteRequest(BaseModel):
+    alerts_by_baby: Dict[str, List[int]]    
 
 class DetectionResultOut(BaseModel):
     """Schema for returning detection result data to the client."""

@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import '../models/baby_profile.dart';
 import '../components/home/baby_profiles_list.dart';
 import '../screens/baby_settings_screen.dart';
+import '../screens/manage_dangerous_objects_screen.dart';
 import '../services/auth_state.dart';
 import 'package:http/http.dart' as http;
 import '../services/baby_profile_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../components/home/add_baby_dialog.dart';
+import '../config/app_config.dart';
+import '../services/model_training_status_service.dart';
 
 class BabiesScreen extends StatefulWidget {
   const BabiesScreen({Key? key}) : super(key: key);
@@ -24,13 +27,26 @@ class _BabiesScreenState extends State<BabiesScreen> {
   void initState() {
     super.initState();
     _babiesFuture = fetchBabies();
+    ModelTrainingStatusService().addListener(_onTrainingStatusChanged);
+  }
+
+  @override
+  void dispose() {
+    ModelTrainingStatusService().removeListener(_onTrainingStatusChanged);
+    super.dispose();
+  }
+
+  void _onTrainingStatusChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<List<BabyProfile>> fetchBabies() async {
     final token = await AuthState.getAuthToken();
     if (token == null) throw Exception('Not authenticated');
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:8000/baby_profiles/my_profiles'),
+      Uri.parse('${AppConfig.baseUrl}/baby_profiles/my_profiles'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -132,6 +148,26 @@ class _BabiesScreenState extends State<BabiesScreen> {
                                 child: const Text('Close'),
                               ),
                             ],
+                          ),
+                        );
+                        } else if (option == 'head_camera_model') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ManageDangerousObjectsScreen(
+                              babyProfileId: babies[index].id,
+                              cameraType: 'Head Camera',
+                            ),
+                          ),
+                        );
+                      } else if (option == 'static_camera_model') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ManageDangerousObjectsScreen(
+                              babyProfileId: babies[index].id,
+                              cameraType: 'Static Camera',
+                            ),
                           ),
                         );
                       } else if (option == 'settings') {

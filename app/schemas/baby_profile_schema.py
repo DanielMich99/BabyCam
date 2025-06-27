@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, Dict
+from datetime import datetime
 
 
 class BabyProfileBase(BaseModel):
@@ -17,6 +18,10 @@ class BabyProfileBase(BaseModel):
     static_camera_model_classes: Optional[Dict] = None  # Object detection classes for static camera (class_name → risk_level)
     head_camera_ip: Optional[str] = None  # IP address of the head-mounted camera
     static_camera_ip: Optional[str] = None  # IP address of the static room camera
+    head_camera_on: Optional[bool] = False  # Connection state of head camera
+    static_camera_on: Optional[bool] = False  # Connection state of static camera
+    head_camera_model_last_updated_time: Optional[datetime] = None
+    static_camera_model_last_updated_time: Optional[datetime] = None
 
 
 class BabyProfileCreate(BabyProfileBase):
@@ -38,6 +43,10 @@ class BabyProfileUpdate(BaseModel):
     static_camera_model_classes: Optional[Dict] = None
     head_camera_ip: Optional[str] = None
     static_camera_ip: Optional[str] = None
+    head_camera_on: Optional[bool] = None
+    static_camera_on: Optional[bool] = None
+    head_camera_model_last_updated_time: Optional[datetime] = None
+    static_camera_model_last_updated_time: Optional[datetime] = None
 
 
 class BabyProfileOut(BabyProfileBase):

@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'notification_service.dart';
 
 class AuthState {
   static const String _tokenKey = 'auth_token';
@@ -30,6 +31,13 @@ class AuthState {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_usernameKey);
+
+    // Remove FCM token from backend when logging out
+    try {
+      await NotificationService().removeToken();
+    } catch (e) {
+      print('Error removing FCM token on logout: $e');
+    }
   }
 
   static Future<bool> isAuthenticated() async {
@@ -56,5 +64,12 @@ class AuthState {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userIdKey);
+
+    // Remove FCM token from backend
+    try {
+      await NotificationService().removeToken();
+    } catch (e) {
+      print('Error removing FCM token on clear all: $e');
+    }
   }
 }

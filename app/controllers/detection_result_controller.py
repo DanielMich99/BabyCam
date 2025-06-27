@@ -23,3 +23,6 @@ def delete_detection_result_by_user_controller(db: Session, detection_id: int, u
     if result is None:
         raise HTTPException(status_code=404, detail="Detection result not found or unauthorized")
     return result
+
+def batch_delete_detection_results_by_user_controller(db: Session, user_id: int, alerts_by_baby: dict):
+    return detection_result_service.batch_delete_detection_results_by_user(db, user_id, alerts_by_baby)

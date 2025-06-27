@@ -5,11 +5,14 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import '../services/auth_service.dart';
 import '../services/auth_state.dart';
 import '../services/websocket_service.dart';
+import '../services/model_training_status_service.dart';
+import '../services/notification_service.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
 import '../components/auth/logo_header.dart';
 import '../components/auth/login_form.dart';
 import '../components/auth/social_login_buttons.dart';
+import '../config/app_config.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -25,6 +28,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final _authService = AuthService();
   final _websocketService = WebSocketService();
   bool _isLoading = false;
+
+  Future<void> _initializeServices(String token) async {
+    await _websocketService.initialize(
+        AppConfig.baseUrl.replaceFirst(RegExp(r'^https?://'), ''), token);
+    ModelTrainingStatusService().initialize(_websocketService);
+  }
 
   Future<void> _handleGoogleSignIn() async {
     try {
@@ -69,9 +78,8 @@ class _LoginScreenState extends State<LoginScreen> {
         await AuthState.saveAuthToken(token);
         await AuthState.saveUsername(_usernameController.text);
 
-        // Initialize WebSocket connection
-        print('Initializing WebSocket with token: $token');
-        await _websocketService.initialize('10.0.2.2:8000', token);
+        // Initialize WebSocket and training status tracking
+        await _initializeServices(token);
 
         if (mounted) {
           // Login successful
@@ -122,6 +130,10 @@ class _LoginScreenState extends State<LoginScreen> {
     final isAuthenticated = await AuthState.isAuthenticated();
     if (isAuthenticated) {
       final username = await AuthState.getUsername();
+      final token = await AuthState.getAuthToken();
+      if (token != null) {
+        await _initializeServices(token);
+      }
       if (mounted && username != null) {
         Navigator.pushReplacement(
           context,
@@ -157,6 +169,33 @@ class _LoginScreenState extends State<LoginScreen> {
                 SocialLoginButtons(
                   onGoogleSignIn: _handleGoogleSignIn,
                   onFacebookSignIn: _handleFacebookSignIn,
+                ),
+                const SizedBox(height: 24),
+                // Test notification button
+                ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      await NotificationService().showTestNotification();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Test notification sent!'),
+                            backgroundColor: Colors.blue,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Test Notification'),
                 ),
                 const SizedBox(height: 24),
                 Row(

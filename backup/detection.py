@@ -121,8 +121,39 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, curre
                                             await asyncio.to_thread(
                                                 send_push_notifications,
                                                 tokens,
-                                                "⚠️ Hazard Detected",
-                                                message,
+                                                {
+                                                    "message": {
+                                                        "notification": {
+                                                            "title": "⚠️ Hazard Detected",
+                                                            "body": f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level}"
+                                                        },
+                                                        "android": {
+                                                            "priority": "high",
+                                                            "notification": {
+                                                                "channel_id": "high_importance_channel",
+                                                                "default_sound": True,
+                                                                "default_vibrate_timings": True,
+                                                                "default_light_settings": True
+                                                            }
+                                                        },
+                                                        "apns": {
+                                                            "payload": {
+                                                                "aps": {
+                                                                    "sound": "notification_sound.aiff",
+                                                                    "badge": 1,
+                                                                    "alert": {
+                                                                        "title": "⚠️ Hazard Detected",
+                                                                        "body": f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level}"
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "data": {
+                                                            "click_action": "FLUTTER_NOTIFICATION_CLICK",
+                                                            "type": "detection_alert"
+                                                        }
+                                                    }
+                                                },
                                                 config.FIREBASE_PROJECT_ID,
                                                 config.GOOGLE_CREDENTIALS_PATH
                                             )
@@ -234,8 +265,39 @@ async def notify_disconnection_and_stop(profile_id: int, camera_type: str, curre
                     await asyncio.to_thread(
                         send_push_notifications,
                         tokens,
-                        title,
-                        body,
+                        {
+                            "message": {
+                                "notification": {
+                                    "title": "📷 Camera Disconnected",
+                                    "body": f"{camera_type.replace('_', ' ').title()} for '{baby_profile.name}' has been disconnected"
+                                },
+                                "android": {
+                                    "priority": "high",
+                                    "notification": {
+                                        "channel_id": "high_importance_channel",
+                                        "default_sound": True,
+                                        "default_vibrate_timings": True,
+                                        "default_light_settings": True
+                                    }
+                                },
+                                "apns": {
+                                    "payload": {
+                                        "aps": {
+                                            "sound": "notification_sound.aiff",
+                                            "badge": 1,
+                                            "alert": {
+                                                "title": "📷 Camera Disconnected",
+                                                "body": f"{camera_type.replace('_', ' ').title()} for '{baby_profile.name}' has been disconnected"
+                                            }
+                                        }
+                                    }
+                                },
+                                "data": {
+                                    "click_action": "FLUTTER_NOTIFICATION_CLICK",
+                                    "type": "Camera_Disconnection"
+                                }
+                            }
+                        },
                         config.FIREBASE_PROJECT_ID,
                         config.GOOGLE_CREDENTIALS_PATH
                     )

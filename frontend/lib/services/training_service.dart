@@ -2,23 +2,35 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import '../models/image_data.dart';
+import 'auth_state.dart';
+import '../config/app_config.dart';
 
 class TrainingService {
-  // Use 10.0.2.2 for Android emulator to access host machine
-  static const String tempUploadUrl = 'http://10.0.2.2:8000/upload-to-temp';
-  static const String modelUpdateUrl = 'http://10.0.2.2:8000/model/update';
+  static final String tempUploadUrl = '${AppConfig.baseUrl}/upload-to-temp';
+  static final String modelUpdateUrl = '${AppConfig.baseUrl}/model/update';
 
   // 1. Upload files (images and labels) to temp
   static Future<void> uploadFilesToTemp(List<ImageData> images) async {
+    if (images.isEmpty) {
+      return; // No files to upload
+    }
+    final token = await AuthState.getAuthToken();  // ✅ שלוף את הטוקן כמו בשאר הקוד
+    if (token == null) throw Exception('Not authenticated');
+
     var uri = Uri.parse(tempUploadUrl);
     var request = http.MultipartRequest('POST', uri);
+
+    request.headers['Authorization'] = 'Bearer $token';  // ✅ הוספת הטוקן
 
     for (var image in images) {
       // Add image file
       request.files.add(await http.MultipartFile.fromPath(
-          'files', image.file.path,
-          filename: image.filename));
-      // Add label file (as string)
+        'files',
+        image.file.path,
+        filename: image.filename,
+      ));
+
+      // Add label file
       final labelContent = await image.generateLabelFileContent();
       final labelFile = http.MultipartFile.fromString(
         'files',
@@ -30,7 +42,8 @@ class TrainingService {
 
     var response = await request.send();
     if (response.statusCode != 200) {
-      throw Exception('Failed to upload files to temp: ${response.statusCode}');
+      final errorBody = await response.stream.bytesToString();
+      throw Exception('Failed to upload files to temp: ${response.statusCode} - $errorBody');
     }
   }
 

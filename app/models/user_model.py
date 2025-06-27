@@ -11,7 +11,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     fcm_token = Column(String, nullable=True)'''
 
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from app.models.base import Base
 
@@ -22,7 +22,8 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     email = Column(String, unique=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-
+    already_logged_in = Column(Boolean, default=False, nullable=False)
+    
     fcm_tokens = relationship("UserFCMToken", back_populates="user", cascade="all, delete-orphan")
 
 class UserFCMToken(Base):

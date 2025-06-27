@@ -10,6 +10,7 @@ router = APIRouter()
 
 @router.post("/model/update")
 def update_model(request: ModelUpdateRequest, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    print(request)
     baby_profile = db.query(BabyProfile).filter_by(id=request.baby_profile_id, user_id=current_user.id).first()
     if not baby_profile:
         raise HTTPException(status_code=403, detail=f"Unauthorized access to baby_profile_id {request.baby_profile_id}")

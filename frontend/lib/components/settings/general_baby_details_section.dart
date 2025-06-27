@@ -33,10 +33,26 @@ class _GeneralBabyDetailsSectionState extends State<GeneralBabyDetailsSection> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.baby.name);
-    _ageController = TextEditingController(text: '10 months');
-    _weightController = TextEditingController();
-    _heightController = TextEditingController();
-    _customMedicalConditionController = TextEditingController();
+    _ageController = TextEditingController(
+        text: widget.baby.age != null ? '${widget.baby.age}' : '');
+    _weightController = TextEditingController(
+        text: widget.baby.weight != null ? '${widget.baby.weight}' : '');
+    _heightController = TextEditingController(
+        text: widget.baby.height != null ? '${widget.baby.height}' : '');
+    _selectedGender = widget.baby.gender ?? 'Male';
+    if (widget.baby.medicalCondition != null) {
+      if (['None', 'Allergy', 'Asthma']
+          .contains(widget.baby.medicalCondition)) {
+        _selectedMedicalCondition = widget.baby.medicalCondition!;
+        _customMedicalConditionController = TextEditingController();
+      } else {
+        _selectedMedicalCondition = 'Other';
+        _customMedicalConditionController =
+            TextEditingController(text: widget.baby.medicalCondition);
+      }
+    } else {
+      _customMedicalConditionController = TextEditingController();
+    }
     _imageUrl = widget.baby.profilePicture;
   }
 

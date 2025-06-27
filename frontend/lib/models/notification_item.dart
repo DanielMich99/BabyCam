@@ -6,6 +6,7 @@ class NotificationItem {
   final double confidence;
   final String cameraType;
   final DateTime timestamp;
+  final String? imagePath;
   final bool isViewed;
   final bool isHandled;
 
@@ -17,6 +18,7 @@ class NotificationItem {
     required this.confidence,
     required this.cameraType,
     required this.timestamp,
+    this.imagePath,
     this.isViewed = false,
     this.isHandled = false,
   });
@@ -29,6 +31,7 @@ class NotificationItem {
     double? confidence,
     String? cameraType,
     DateTime? timestamp,
+    String? imagePath,
     bool? isViewed,
     bool? isHandled,
   }) {
@@ -40,6 +43,7 @@ class NotificationItem {
       confidence: confidence ?? this.confidence,
       cameraType: cameraType ?? this.cameraType,
       timestamp: timestamp ?? this.timestamp,
+      imagePath: imagePath ?? this.imagePath,
       isViewed: isViewed ?? this.isViewed,
       isHandled: isHandled ?? this.isHandled,
     );
@@ -54,6 +58,7 @@ class NotificationItem {
       confidence: json['confidence'].toDouble(),
       cameraType: json['camera_type'],
       timestamp: DateTime.parse(json['timestamp']),
+      imagePath: json['image_path'],
     );
   }
 }

@@ -10,6 +10,7 @@ import '../components/home/custom_bottom_nav.dart';
 import '../components/alerts/notification_list.dart';
 import 'login_screen.dart';
 import '../components/home/add_baby_dialog.dart';
+import '../config/app_config.dart';
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -91,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final token = await AuthState.getAuthToken();
     if (token == null) throw Exception('Not authenticated');
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:8000/baby_profiles/my_profiles'),
+      Uri.parse('${AppConfig.baseUrl}/baby_profiles/my_profiles'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -120,6 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
+              _websocketService.disconnect();
               await AuthState.clearAuth();
               if (mounted) {
                 Navigator.pushReplacement(

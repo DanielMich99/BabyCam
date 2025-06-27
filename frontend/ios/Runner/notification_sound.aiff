@@ -1,0 +1,4 @@
+# This is a placeholder for the iOS notification sound file
+# In a real implementation, you would add an actual AIFF file here
+# The file should be named notification_sound.aiff and placed in this directory
+# You can convert an MP3 to AIFF using online converters or audio software 

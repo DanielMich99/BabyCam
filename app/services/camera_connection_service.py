@@ -26,17 +26,6 @@ class CameraConnectionManager:
         for key in self._waiting_connections:
             if self._waiting_connections[key] is None:
                 self._waiting_connections[key] = ip
-                # יצירת stream buffer באופן מיידי
-                # baby_profile_id, camera_type = key.split(":")
-                # buffer_key = f"{baby_profile_id}_{camera_type}"
-                # if buffer_key not in stream_buffers:
-                #     print(ip)
-                #     stream_url = f"http://{ip}/stream"
-                #     #stream_url = f"http://{ip}:8081/stream"
-                #     stream_buffer = ESP32StreamBuffer(stream_url)
-                #     stream_buffer.start()
-                #     stream_buffers[buffer_key] = stream_buffer
-                #     print(f"🎥 [BUFFER] נוצר buffer ל-{buffer_key}")
                 return key  # נחזיר את הקישור שמצאנו
         return None
 
@@ -49,15 +38,15 @@ class CameraConnectionManager:
             ip = self._waiting_connections.get(key)
             if ip:
                 if await self._is_camera_alive(ip):
-                    await self._update_baby_profile_ip(baby_profile_id, camera_type, ip)
+                    await self._update_baby_profile_connection(baby_profile_id, camera_type, ip, True)
                     del self._waiting_connections[key]
-                    return True
+                    return f"http://{ip}/stream"
                 else:
                     print(f"Camera at {ip} not responding.")    
             await asyncio.sleep(1)
 
         del self._waiting_connections[key]
-        return False
+        return None
 
     async def _is_camera_alive(self, ip: str) -> bool:
         try:
@@ -68,15 +57,20 @@ class CameraConnectionManager:
         except Exception:
             return False
 
-    async def _update_baby_profile_ip(self, baby_profile_id: int, camera_type: str, ip: str):
+    async def _update_baby_profile_connection(self, baby_profile_id: int, camera_type: str, ip: str, is_connected: bool):
         db: Session = SessionLocal()
         profile = db.query(BabyProfile).filter(BabyProfile.id == baby_profile_id).first()
         if not profile:
+            db.close()
             return
+        
         if camera_type == "head_camera":
-            profile.head_camera_ip = ip
+            profile.head_camera_ip = ip if is_connected else None
+            profile.head_camera_on = is_connected
         else:
-            profile.static_camera_ip = ip
+            profile.static_camera_ip = ip if is_connected else None
+            profile.static_camera_on = is_connected
+        
         db.commit()
         db.close()
 
@@ -90,8 +84,10 @@ class CameraConnectionManager:
 
         if camera_type == "head_camera":
             profile.head_camera_ip = None
+            profile.head_camera_on = False
         elif camera_type == "static_camera":
             profile.static_camera_ip = None
+            profile.static_camera_on = False
         else:
             db.close()
             return False
@@ -111,6 +107,8 @@ class CameraConnectionManager:
         for profile in profiles:
             profile.head_camera_ip = None
             profile.static_camera_ip = None
+            profile.head_camera_on = False
+            profile.static_camera_on = False
 
         db.commit()
         db.close()

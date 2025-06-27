@@ -10,6 +10,7 @@ from app.utils.config import config
 from app.utils.websocket_broadcast import broadcast_detection  # שימוש בחדש לפי המימוש שלך
 from app.utils.fcm_push import send_push_notifications
 from app.models.user_model import User, UserFCMToken
+from app.models.baby_profile_model import BabyProfile
 from sqlalchemy.orm import Session
 from database.database import SessionLocal
 
@@ -56,11 +57,43 @@ def polling_loop():
                         if tokens:
                             send_push_notifications(
                                 tokens,
-                                "Model Ready",
-                                f"New model for {camera_type} is ready!",
+                                {
+                                    "message": {
+                                        "notification": {
+                                            "title": "Model Ready",
+                                            "body": f"New model for {camera_type} is ready!"
+                                        },
+                                        "android": {
+                                            "priority": "high",
+                                            "notification": {
+                                                "channel_id": "high_importance_channel",
+                                                "default_sound": True,
+                                                "default_vibrate_timings": True,
+                                                "default_light_settings": True
+                                            }
+                                        },
+                                        "apns": {
+                                            "payload": {
+                                                "aps": {
+                                                    "sound": "notification_sound.aiff",
+                                                    "badge": 1,
+                                                    "alert": {
+                                                        "title": "Model Ready",
+                                                        "body": f"New model for {camera_type} is ready!"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "data": {
+                                            "click_action": "FLUTTER_NOTIFICATION_CLICK",
+                                            "type": "Camera_Disconnection"
+                                        }
+                                    }
+                                },
                                 config.FIREBASE_PROJECT_ID,
                                 config.GOOGLE_CREDENTIALS_PATH
                             )
+
 
                     pending_trainings.remove(training)
 
@@ -73,38 +106,7 @@ def polling_loop():
 def start_monitoring_thread():
     thread = threading.Thread(target=polling_loop, daemon=True)
     thread.start()
-
-'''def check_and_download_model(user_id: int, camera_type: str) -> bool:
-    gauth = GoogleAuth()
-    gauth.LocalWebserverAuth()
-    drive = GoogleDrive(gauth)
-
-    file_name = f"{user_id}_{camera_type}_model.pt"
-    local_path = os.path.join("uploads", "training_data", str(user_id), camera_type, file_name)
-
-    folders = drive.ListFile({'q': "mimeType='application/vnd.google-apps.folder' and trashed=false"}).GetList()
-    root = next((f for f in folders if f['title'] == "babycam_data"), None)
-    if not root:
-        return False
-
-    profile_query = f"'{root['id']}' in parents and title = '{user_id}'"
-    profiles = drive.ListFile({'q': profile_query}).GetList()
-    if not profiles:
-        return False
-
-    model_query = f"'{profiles[0]['id']}' in parents and title = '{camera_type}'"
-    models = drive.ListFile({'q': model_query}).GetList()
-    if not models:
-        return False
-
-    file_query = f"'{models[0]['id']}' in parents and title = '{file_name}' and trashed=false"
-    results = drive.ListFile({'q': file_query}).GetList()
-    if not results:
-        return False
-
-    results[0].GetContentFile(local_path)
-    return True'''
-
+    
 def check_and_download_model(baby_profile_id: int, camera_type: str, start_time: float) -> bool:
     file_name = f"{baby_profile_id}_{camera_type}_model.pt"
     local_path = os.path.join("uploads", "training_data", str(baby_profile_id), camera_type, file_name)
@@ -134,5 +136,15 @@ def check_and_download_model(baby_profile_id: int, camera_type: str, start_time:
     file_id = file_metadata['id']
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
     drive_service.download_file(file_id, local_path)
+
+    db: Session = SessionLocal()
+    profile = db.query(BabyProfile).filter(BabyProfile.id == baby_profile_id).first()
+    if profile:
+        if camera_type == "head_camera":
+            profile.head_camera_model_last_updated_time = datetime.utcnow()
+        else:
+            profile.static_camera_model_last_updated_time = datetime.utcnow()
+        db.commit()
+    db.close()
 
     return True
