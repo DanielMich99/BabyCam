@@ -1,15 +1,20 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import '../models/baby_profile.dart';
+import '../models/notification_item.dart';
 import '../services/auth_state.dart';
 import '../services/websocket_service.dart';
-import '../models/notification_item.dart';
-import '../models/baby_profile.dart';
+import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import '../components/home/home_header.dart';
-import '../components/home/custom_bottom_nav.dart';
 import '../components/alerts/notification_list.dart';
-import 'login_screen.dart';
-import '../components/home/add_baby_dialog.dart';
+import '../components/home/custom_bottom_nav.dart';
+import '../screens/login_screen.dart';
+import '../screens/babies_screen.dart';
+import '../screens/alerts_screen.dart';
+import '../screens/settings_screen.dart';
+import '../screens/camera_screen.dart';
+import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -22,24 +27,44 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final WebSocketService _websocketService = WebSocketService();
+  final AuthService _authService = AuthService();
+  final NotificationService _notificationService = NotificationService();
+
+  List<NotificationItem> _notifications = [];
   int _selectedIndex = 0;
   bool _isCameraOn = false;
   late Future<List<BabyProfile>> _babiesFuture;
-  final List<NotificationItem> _notifications = [];
-  final _websocketService = WebSocketService();
 
   @override
   void initState() {
     super.initState();
-    _checkAuthentication();
-    _babiesFuture = fetchBabies();
-    _websocketService.addDetectionListener(_handleDetection);
+    _babiesFuture = _authService.getBabyProfiles();
+    _initializeWebSocket();
+    _loadNotifications();
   }
 
-  @override
-  void dispose() {
-    _websocketService.removeDetectionListener(_handleDetection);
-    super.dispose();
+  Future<void> _initializeWebSocket() async {
+    final token = await AuthState.getAuthToken();
+    if (token != null) {
+      await _websocketService.initialize(
+        AppConfig.baseUrl.replaceFirst(RegExp(r'^https?://'), ''),
+        token,
+      );
+      _websocketService.addDetectionListener(_handleDetection);
+    }
+  }
+
+  Future<void> _loadNotifications() async {
+    try {
+      // Load notifications from your detection service
+      // This is a placeholder - implement based on your needs
+      setState(() {
+        _notifications = [];
+      });
+    } catch (e) {
+      print('Error loading notifications: $e');
+    }
   }
 
   void _handleDetection(Map<String, dynamic> detection) {
@@ -77,33 +102,49 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _checkAuthentication() async {
-    final isAuthenticated = await AuthState.isAuthenticated();
-    if (!mounted) return;
-    if (!isAuthenticated) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+  Future<void> _handleLogout() async {
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
+
+      // Disconnect WebSocket
+      _websocketService.disconnect();
+
+      // Perform logout with backend integration
+      await AuthState.logout();
+
+      if (mounted) {
+        // Close loading dialog
+        Navigator.of(context).pop();
+
+        // Navigate to login screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        // Close loading dialog
+        Navigator.of(context).pop();
+
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Logout failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<List<BabyProfile>> fetchBabies() async {
-    final token = await AuthState.getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-    final response = await http.get(
-      Uri.parse('${AppConfig.baseUrl}/baby_profiles/my_profiles'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      return data.map((json) => BabyProfile.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to load babies');
-    }
+    return await _authService.getBabyProfiles();
   }
 
   void _deleteNotification(int id) {
@@ -120,16 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () async {
-              _websocketService.disconnect();
-              await AuthState.clearAuth();
-              if (mounted) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                );
-              }
-            },
+            onPressed: _handleLogout,
           ),
         ],
       ),
@@ -173,6 +205,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _websocketService.removeDetectionListener(_handleDetection);
+    super.dispose();
   }
 }
 

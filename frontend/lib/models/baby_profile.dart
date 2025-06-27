@@ -20,6 +20,8 @@ class BabyProfile {
   final DateTime? staticCameraModelLastUpdatedTime;
   final bool headCameraTraining;
   final bool staticCameraTraining;
+  final bool headCameraInDetectionSystemOn;
+  final bool staticCameraInDetectionSystemOn;
 
   BabyProfile({
     required this.id,
@@ -41,6 +43,8 @@ class BabyProfile {
     this.staticCameraModelLastUpdatedTime,
     this.headCameraTraining = false,
     this.staticCameraTraining = false,
+    this.headCameraInDetectionSystemOn = false,
+    this.staticCameraInDetectionSystemOn = false,
   });
 
   factory BabyProfile.fromJson(Map<String, dynamic> json) {
@@ -69,6 +73,10 @@ class BabyProfile {
               : null,
       headCameraTraining: false,
       staticCameraTraining: false,
+      headCameraInDetectionSystemOn:
+          json['head_camera_in_detection_system_on'] ?? false,
+      staticCameraInDetectionSystemOn:
+          json['static_camera_in_detection_system_on'] ?? false,
     );
   }
 
@@ -92,6 +100,8 @@ class BabyProfile {
     DateTime? staticCameraModelLastUpdatedTime,
     bool? headCameraTraining,
     bool? staticCameraTraining,
+    bool? headCameraInDetectionSystemOn,
+    bool? staticCameraInDetectionSystemOn,
   }) {
     return BabyProfile(
       id: id ?? this.id,
@@ -115,6 +125,15 @@ class BabyProfile {
           this.staticCameraModelLastUpdatedTime,
       headCameraTraining: headCameraTraining ?? this.headCameraTraining,
       staticCameraTraining: staticCameraTraining ?? this.staticCameraTraining,
+      headCameraInDetectionSystemOn:
+          headCameraInDetectionSystemOn ?? this.headCameraInDetectionSystemOn,
+      staticCameraInDetectionSystemOn: staticCameraInDetectionSystemOn ??
+          this.staticCameraInDetectionSystemOn,
     );
+  }
+
+  // Check if any camera has detection system active
+  bool get hasDetectionSystemActive {
+    return headCameraInDetectionSystemOn || staticCameraInDetectionSystemOn;
   }
 }

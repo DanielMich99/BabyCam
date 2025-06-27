@@ -30,6 +30,17 @@ def get_filtered_detection_results(
 ):
     return detection_result_controller.get_detection_results_by_filters_controller(db, current_user.id, baby_profile_id, camera_type)
 
+# Batch delete - must come before {detection_id} routes
+@router.delete("/batch_delete")
+def batch_delete_detection_results(
+    payload: detection_result_schema.BatchDeleteRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return detection_result_controller.batch_delete_detection_results_by_user_controller(
+        db, current_user.id, payload.alerts_by_baby
+    )
+
 # שליפה בודדת לפי id
 @router.get("/{detection_id}", response_model=detection_result_schema.DetectionResultOut)
 def get_detection_result(detection_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -39,16 +50,6 @@ def get_detection_result(detection_id: int, current_user: User = Depends(get_cur
 @router.delete("/{detection_id}", response_model=detection_result_schema.DetectionResultOut)
 def delete_detection_result(detection_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return detection_result_controller.delete_detection_result_by_user_controller(db, detection_id, current_user.id)
-
-@router.post("/batch_delete")
-def batch_delete_detection_results(
-    payload: detection_result_schema.BatchDeleteRequest,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    return detection_result_controller.batch_delete_detection_results_by_user_controller(
-        db, current_user.id, payload.alerts_by_baby
-    )
 
 @router.get("/{detection_id}/image")
 def get_detection_image(

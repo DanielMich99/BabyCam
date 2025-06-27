@@ -11,6 +11,9 @@ async def start_monitoring_service(camera_profiles: List[CameraTuple], current_u
     active_sessions = []
     #origin = request.headers.get("origin") or "http://localhost:3000"
 
+    # Extract user ID before the object becomes detached
+    user_id = current_user.id if current_user else None
+
     for item in camera_profiles:
         profile = db.query(BabyProfile).filter_by(id=item.baby_profile_id).first()
         if not profile:
@@ -25,7 +28,7 @@ async def start_monitoring_service(camera_profiles: List[CameraTuple], current_u
         if not os.path.exists(model_path):
             raise HTTPException(status_code=404, detail=f"Model file not found for {item.camera_type} on profile {item.baby_profile_id}")
 
-        session = await start_detection_loop(profile.id, item.camera_type, ip, current_user, model_path, db, camera_profiles)
+        session = await start_detection_loop(profile.id, item.camera_type, ip, user_id, model_path, db, camera_profiles)
         active_sessions.append(session)
         if profile:
             setattr(profile, f"{item.camera_type}_in_detection_system_on", True)
