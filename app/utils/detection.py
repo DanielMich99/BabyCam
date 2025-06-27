@@ -11,12 +11,13 @@ from app.models.baby_profile_model import BabyProfile
 from app.utils.config import config
 from app.utils.websocket_broadcast import broadcast_detection
 from app.utils.esp32_stream_buffer import ESP32StreamBuffer
+from database.database import SessionLocal
 
 running_tasks = {}
 last_detection_time = {}  # key: profile_camera_class, value: datetime
 stream_buffers = {}  # key: profile_id_camera_type, value: ESP32StreamBuffer
 
-async def start_detection_loop(profile_id: int, camera_type: str, ip: str, current_user: User, model_path: str, db, camera_profiles):
+async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_id: int, model_path: str, db, camera_profiles):
     model = YOLO(model_path)
     stream_url = f"http://{ip}/stream"
     should_stop = False
@@ -58,7 +59,7 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, curre
                                 continue
                             else:
                                 print(f"[DISCONNECTED] Camera for Profile {profile_id} - {camera_type}")
-                                await notify_disconnection_and_stop(profile_id, camera_type, current_user, camera_profiles, db)
+                                await notify_disconnection_and_stop(profile_id, camera_type, user_id, camera_profiles, db)
                                 break
 
                         await asyncio.sleep(0.5)
@@ -109,7 +110,7 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, curre
 
                                 # שליחה ל-WebSocket עם detection_id
                                 await broadcast_detection(
-                                    baby_profile.user_id,
+                                    user_id,
                                     {
                                         "type": "hazard_detected",
                                         "baby_profile_id": profile_id,
@@ -124,52 +125,60 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, curre
                                 )
 
                                 # שליחת push notifications
-                                if current_user:
+                                if user_id:
                                     try:
-                                        tokens = [t.token for t in db.query(UserFCMToken).filter_by(user_id=current_user.id).all()]
-                                        if tokens:
-                                            message = f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level}"
-                                            await asyncio.to_thread(
-                                                send_push_notifications,
-                                                tokens,
-                                                {
-                                                    "message": {
-                                                        "notification": {
-                                                            "title": "⚠️ Hazard Detected",
-                                                            "body": f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level}"
-                                                        },
-                                                        "android": {
-                                                            "priority": "high",
+                                        # Create a fresh database session to avoid session binding issues
+                                        fresh_db = SessionLocal()
+                                        try:
+                                            tokens = [t.token for t in fresh_db.query(UserFCMToken).filter_by(user_id=user_id).all()]
+                                            if tokens:
+                                                message = f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level}"
+                                                await asyncio.to_thread(
+                                                    send_push_notifications,
+                                                    tokens,
+                                                    {
+                                                        "message": {
                                                             "notification": {
-                                                                "channel_id": "high_importance_channel",
-                                                                "default_sound": True,
-                                                                "default_vibrate_timings": True,
-                                                                "default_light_settings": True
-                                                            }
-                                                        },
-                                                        "apns": {
-                                                            "payload": {
-                                                                "aps": {
-                                                                    "sound": "notification_sound.aiff",
-                                                                    "badge": 1,
-                                                                    "alert": {
-                                                                        "title": "⚠️ Hazard Detected",
-                                                                        "body": f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level}"
+                                                                "title": "⚠️ Hazard Detected",
+                                                                "body": f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level}"
+                                                            },
+                                                            "android": {
+                                                                "priority": "high",
+                                                                "notification": {
+                                                                    "channel_id": "high_importance_channel",
+                                                                    "default_sound": True,
+                                                                    "default_vibrate_timings": True,
+                                                                    "default_light_settings": True
+                                                                }
+                                                            },
+                                                            "apns": {
+                                                                "payload": {
+                                                                    "aps": {
+                                                                        "sound": "notification_sound.aiff",
+                                                                        "badge": 1,
+                                                                        "alert": {
+                                                                            "title": "⚠️ Hazard Detected",
+                                                                            "body": f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level}"
+                                                                        }
                                                                     }
                                                                 }
+                                                            },
+                                                            "data": {
+                                                                "click_action": "FLUTTER_NOTIFICATION_CLICK",
+                                                                "type": "detection_alert"
                                                             }
-                                                        },
-                                                        "data": {
-                                                            "click_action": "FLUTTER_NOTIFICATION_CLICK",
-                                                            "type": "detection_alert"
                                                         }
-                                                    }
-                                                },
-                                                config.FIREBASE_PROJECT_ID,
-                                                config.GOOGLE_CREDENTIALS_PATH
-                                            )
+                                                    },
+                                                    config.FIREBASE_PROJECT_ID,
+                                                    config.GOOGLE_CREDENTIALS_PATH
+                                                )
+                                        finally:
+                                            fresh_db.close()
                                     except Exception as e:
                                         print(f"[WARNING] Failed to send push notifications: {e}")
+                                        print(f"[DEBUG] Exception type: {type(e)}")
+                                        import traceback
+                                        print(f"[DEBUG] Full traceback: {traceback.format_exc()}")
 
                     await asyncio.sleep(0.5)
 
@@ -206,7 +215,7 @@ async def stop_detection_loop(profile_id: int, camera_type: str):
     if stream_buffer:
         stream_buffer.stop()    
 
-async def notify_disconnection_and_stop(profile_id: int, camera_type: str, current_user: User, camera_profiles, db):
+async def notify_disconnection_and_stop(profile_id: int, camera_type: str, user_id: int, camera_profiles, db):
     try:
         from app.services.monitoring_service import stop_monitoring_service
 
@@ -214,7 +223,7 @@ async def notify_disconnection_and_stop(profile_id: int, camera_type: str, curre
         baby_profile = db.query(BabyProfile).filter_by(id=profile_id).first()
         if baby_profile:
             await broadcast_detection(
-                baby_profile.user_id,
+                user_id,
                 {
                     "type": "camera_disconnected",
                     "baby_profile_id": profile_id,
@@ -225,50 +234,55 @@ async def notify_disconnection_and_stop(profile_id: int, camera_type: str, curre
 
             # שליחת התראה ב־Push Notification
             #user = db.query(User).filter_by(id=baby_profile.user_id).first()
-            if current_user:
-                tokens = [t.token for t in db.query(UserFCMToken).filter_by(user_id=current_user.id).all()]
-                if tokens:
-                    title = "📷 Camera Disconnected"
-                    body = f"{camera_type.replace('_', ' ').title()} for '{baby_profile.name}' has been disconnected"
-                    await asyncio.to_thread(
-                        send_push_notifications,
-                        tokens,
-                        {
-                            "message": {
-                                "notification": {
-                                    "title": "📷 Camera Disconnected",
-                                    "body": f"{camera_type.replace('_', ' ').title()} for '{baby_profile.name}' has been disconnected"
-                                },
-                                "android": {
-                                    "priority": "high",
+            if user_id:
+                # Create a fresh database session to avoid session binding issues
+                fresh_db = SessionLocal()
+                try:
+                    tokens = [t.token for t in fresh_db.query(UserFCMToken).filter_by(user_id=user_id).all()]
+                    if tokens:
+                        title = "📷 Camera Disconnected"
+                        body = f"{camera_type.replace('_', ' ').title()} for '{baby_profile.name}' has been disconnected"
+                        await asyncio.to_thread(
+                            send_push_notifications,
+                            tokens,
+                            {
+                                "message": {
                                     "notification": {
-                                        "channel_id": "high_importance_channel",
-                                        "default_sound": True,
-                                        "default_vibrate_timings": True,
-                                        "default_light_settings": True
-                                    }
-                                },
-                                "apns": {
-                                    "payload": {
-                                        "aps": {
-                                            "sound": "notification_sound.aiff",
-                                            "badge": 1,
-                                            "alert": {
-                                                "title": "📷 Camera Disconnected",
-                                                "body": f"{camera_type.replace('_', ' ').title()} for '{baby_profile.name}' has been disconnected"
+                                        "title": "📷 Camera Disconnected",
+                                        "body": f"{camera_type.replace('_', ' ').title()} for '{baby_profile.name}' has been disconnected"
+                                    },
+                                    "android": {
+                                        "priority": "high",
+                                        "notification": {
+                                            "channel_id": "high_importance_channel",
+                                            "default_sound": True,
+                                            "default_vibrate_timings": True,
+                                            "default_light_settings": True
+                                        }
+                                    },
+                                    "apns": {
+                                        "payload": {
+                                            "aps": {
+                                                "sound": "notification_sound.aiff",
+                                                "badge": 1,
+                                                "alert": {
+                                                    "title": "📷 Camera Disconnected",
+                                                    "body": f"{camera_type.replace('_', ' ').title()} for '{baby_profile.name}' has been disconnected"
+                                                }
                                             }
                                         }
+                                    },
+                                    "data": {
+                                        "click_action": "FLUTTER_NOTIFICATION_CLICK",
+                                        "type": "Camera_Disconnection"
                                     }
-                                },
-                                "data": {
-                                    "click_action": "FLUTTER_NOTIFICATION_CLICK",
-                                    "type": "Camera_Disconnection"
                                 }
-                            }
-                        },
-                        config.FIREBASE_PROJECT_ID,
-                        config.GOOGLE_CREDENTIALS_PATH
-                    )
+                            },
+                            config.FIREBASE_PROJECT_ID,
+                            config.GOOGLE_CREDENTIALS_PATH
+                        )
+                finally:
+                    fresh_db.close()
 
         await stop_detection_loop(profile_id, camera_type)
 
