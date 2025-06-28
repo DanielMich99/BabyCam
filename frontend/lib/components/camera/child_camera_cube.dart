@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
 
 class ChildCameraCube extends StatelessWidget {
   final String childName;
