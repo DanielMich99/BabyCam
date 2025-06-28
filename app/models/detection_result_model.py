@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, ForeignKey, DateTime, Float, String
 from sqlalchemy.orm import relationship
 from datetime import datetime
+import pytz
 from app.models.base import Base
 
 class DetectionResult(Base):
@@ -12,7 +13,7 @@ class DetectionResult(Base):
     class_name = Column(String, nullable=False)
     confidence = Column(Float, nullable=False)
     camera_type = Column(String, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=datetime.now)
     image_path = Column(String, nullable=True)
 
     baby_profile = relationship("BabyProfile", back_populates="detection_results")

@@ -4,6 +4,7 @@ import json
 from app.models.user_model import User
 from database.database import SessionLocal
 from app.utils.connection_manager import ConnectionManager
+from datetime import datetime
 
 router = APIRouter()
 
@@ -40,7 +41,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         await manager.connect(user_id, websocket)
         print(
-            f"[WEBSOCKET] Client connected: user_id={user_id}, address={client_info}"
+            f"[{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}][WEBSOCKET] Client connected: user_id={user_id}, address={client_info}"
         )
 
         while True:
@@ -48,9 +49,12 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except WebSocketDisconnect:
         if user_id is not None:
-            print(
-                f"[WEBSOCKET] Client disconnected: user_id={user_id}, address={client_info}"
-            )
+            # print(
+            #     f"[WEBSOCKET] Client disconnected: user_id={user_id}, address={client_info}"
+            # )
             manager.disconnect(user_id, websocket)
+            print(
+                f"[{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}][WEBSOCKET] Client disconnected: user_id={user_id}, address={client_info}"
+            )
         else:
-            print(f"[WEBSOCKET] Client disconnected before authentication: address={client_info}")
+            print(f"[{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}][WEBSOCKET] Client disconnected before authentication: address={client_info}")

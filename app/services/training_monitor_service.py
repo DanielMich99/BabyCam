@@ -55,13 +55,14 @@ def polling_loop():
                     if user:
                         tokens = [t.token for t in db.query(UserFCMToken).filter_by(user_id=user.id).all()]
                         if tokens:
+                            baby = db.query(BabyProfile).filter_by(id=baby_profile_id).first()
                             send_push_notifications(
                                 tokens,
                                 {
                                     "message": {
                                         "notification": {
                                             "title": "Model Ready",
-                                            "body": f"New model for {camera_type} is ready!"
+                                            "body": f"New {camera_type} model for {baby.name} is ready!"
                                         },
                                         "android": {
                                             "priority": "high",
@@ -79,7 +80,7 @@ def polling_loop():
                                                     "badge": 1,
                                                     "alert": {
                                                         "title": "Model Ready",
-                                                        "body": f"New model for {camera_type} is ready!"
+                                                        "body": f"New {camera_type} model for {baby.name} is ready!"
                                                     }
                                                 }
                                             }
@@ -141,9 +142,9 @@ def check_and_download_model(baby_profile_id: int, camera_type: str, start_time:
     profile = db.query(BabyProfile).filter(BabyProfile.id == baby_profile_id).first()
     if profile:
         if camera_type == "head_camera":
-            profile.head_camera_model_last_updated_time = datetime.utcnow()
+            profile.head_camera_model_last_updated_time = datetime.now()
         else:
-            profile.static_camera_model_last_updated_time = datetime.utcnow()
+            profile.static_camera_model_last_updated_time = datetime.now()
         db.commit()
     db.close()
 

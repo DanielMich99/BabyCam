@@ -117,10 +117,10 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
                                         "camera_type": camera_type,
                                         "class_id": class_id,
                                         "class_name": class_name,
-                                        "risk_level": risk_level,
+                                        "risk_level": risk_level.value,
                                         "confidence": conf_value,
                                         "detection_id": detection.id,
-                                        "timestamp": datetime.utcnow().isoformat()
+                                        "timestamp": datetime.now().isoformat()
                                     }
                                 )
 
@@ -132,7 +132,7 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
                                         try:
                                             tokens = [t.token for t in fresh_db.query(UserFCMToken).filter_by(user_id=user_id).all()]
                                             if tokens:
-                                                message = f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level}"
+                                                message = f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level.value}"
                                                 await asyncio.to_thread(
                                                     send_push_notifications,
                                                     tokens,
@@ -140,7 +140,7 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
                                                         "message": {
                                                             "notification": {
                                                                 "title": "⚠️ Hazard Detected",
-                                                                "body": f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level}"
+                                                                "body": f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level.value}"
                                                             },
                                                             "android": {
                                                                 "priority": "high",
@@ -158,7 +158,7 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
                                                                         "badge": 1,
                                                                         "alert": {
                                                                             "title": "⚠️ Hazard Detected",
-                                                                            "body": f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level}"
+                                                                            "body": f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level.value}"
                                                                         }
                                                                     }
                                                                 }
@@ -228,7 +228,7 @@ async def notify_disconnection_and_stop(profile_id: int, camera_type: str, user_
                     "type": "camera_disconnected",
                     "baby_profile_id": profile_id,
                     "camera_type": camera_type,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now().isoformat()
                 }
             )
 
@@ -300,7 +300,7 @@ def save_detection_image(base_path, baby_profile_id, camera_type, class_name, cl
     folder = os.path.join(base_path, str(baby_profile_id), camera_type)
     os.makedirs(folder, exist_ok=True)
 
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     conf_str = f"{confidence:.2f}"
     filename = f"{timestamp}_class_id_{class_id}_{class_name}_conf_{conf_str}.jpg"
     file_path = os.path.join(folder, filename)
