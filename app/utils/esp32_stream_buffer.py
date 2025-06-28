@@ -30,6 +30,8 @@ class ESP32StreamBuffer:
                     self.frame = frame
             else:
                 print("[WARNING] Failed to read frame, retrying in 0.5s")
+                with self._lock:
+                    self.frame = None
                 time.sleep(0.5)
         cap.release()
 

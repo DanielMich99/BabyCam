@@ -29,6 +29,20 @@ class WebSocketService {
     }
     if (!_shouldReconnect) return;
 
+    // If a connection already exists and is active, avoid opening another one
+    if (_channel != null && _isConnected) {
+      return;
+    }
+
+    // Clean up any stale connection
+    if (_channel != null) {
+      try {
+        await _channel!.sink.close(status.goingAway);
+      } catch (_) {}
+      _channel = null;
+      _isConnected = false;
+    }
+
     try {
       final uri = Uri.parse('ws://$_baseUrl/ws/detections');
       print('Connecting to WebSocket: $uri');
@@ -75,6 +89,7 @@ class WebSocketService {
     }
     _reconnectTimer?.cancel();
     _channel?.sink.close(status.goingAway);
+    _channel = null;
     _isConnected = false;
   }
 

@@ -53,23 +53,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) async {
-    final isAuth = await AuthState.isAuthenticated();
-    if (!isAuth) {
-      _webSocketService.disconnect();
-      return;
-    }
-    if (state == AppLifecycleState.resumed) {
-      if (!_webSocketService.isConnected && _webSocketService.shouldReconnect) {
-        _webSocketService.connect();
-      }
-    } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.detached) {
-      _webSocketService.disconnect(preserveReconnect: true);
-    }
-  }
+  // @override
+  // void didChangeAppLifecycleState(AppLifecycleState state) async {
+  //   final isAuth = await AuthState.isAuthenticated();
+  //   if (!isAuth) {
+  //     _webSocketService.disconnect();
+  //     return;
+  //   }
+  //   if (state == AppLifecycleState.resumed) {
+  //     if (!_webSocketService.isConnected) {
+  //       _webSocketService.enableReconnect();
+  //       _webSocketService.connect();
+  //     }
+  //   } else if (state == AppLifecycleState.paused ||
+  //       state == AppLifecycleState.inactive ||
+  //       state == AppLifecycleState.detached) {
+  //     _webSocketService.disconnect();
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
