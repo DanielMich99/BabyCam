@@ -41,4 +41,3 @@ def delete_fcm_token_controller(token: str, db: Session, current_user: User):
 
 async def logout_user_controller(db: Session, user: User, data: LogoutRequest, request: Request):
     return await process_logout(db, user, data.baby_profile_ids, data.fcm_token, request)
-

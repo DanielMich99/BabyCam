@@ -49,9 +49,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except WebSocketDisconnect:
         if user_id is not None:
-            # print(
-            #     f"[WEBSOCKET] Client disconnected: user_id={user_id}, address={client_info}"
-            # )
             manager.disconnect(user_id, websocket)
             print(
                 f"[{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}][WEBSOCKET] Client disconnected: user_id={user_id}, address={client_info}"

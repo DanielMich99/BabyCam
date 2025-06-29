@@ -42,7 +42,6 @@ def polling_loop():
                 if check_and_download_model(baby_profile_id, camera_type, start_time):
                     print(f"[TRAINING MONITOR] Model ready for {baby_profile_id} - {camera_type}")
 
-                    # שליחת סוקט - לפי המימוש שלך: broadcast_detection(user_id, event_data)
                     event = {
                         "type": "model_training_completed",
                         "baby_profile_id": baby_profile_id,

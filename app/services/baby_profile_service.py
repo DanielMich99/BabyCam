@@ -2,7 +2,6 @@ import os
 import shutil
 from sqlalchemy.orm import Session
 
-from app.models.alert_model import Alert
 from app.models.baby_profile_model import BabyProfile
 from app.models.class_model import ClassObject
 from app.models.detection_result_model import DetectionResult
@@ -59,11 +58,6 @@ def delete_baby_profile_by_user(db: Session, profile_id: int, user_id: int):
         return None
 
     db.delete(db_profile)
-
-    # Delete all related alerts
-    db_alerts = db.query(Alert).filter(Alert.baby_profile_id == profile_id).all()
-    for item in db_alerts:
-        db.delete(item)
 
     # Delete all related class definitions
     db_classes = db.query(ClassObject).filter(ClassObject.baby_profile_id == profile_id).all()

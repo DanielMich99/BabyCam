@@ -6,32 +6,6 @@ import glob
 from sqlalchemy.orm import Session
 from app.models.class_model import ClassObject
 
-
-'''def update_dataset_yaml(model_folder: str) -> dict:
-    """
-    Rewrites dataset.yaml with updated class list from objects folder.
-    Returns the mapping {class_name: index} for relabeling purposes.
-    """
-    objects_path = os.path.join(model_folder, "objects")
-    class_names = sorted(
-        [name for name in os.listdir(objects_path) if os.path.isdir(os.path.join(objects_path, name))]
-    )
-
-    name_to_index = {name: i for i, name in enumerate(class_names)}
-    index_to_name = {i: name for name, i in name_to_index.items()}
-
-    dataset_yaml = {
-        'train': 'images/train',
-        'val': 'images/val',
-        'names': index_to_name
-    }
-
-    yaml_path = os.path.join(model_folder, "dataset.yaml")
-    with open(yaml_path, 'w') as f:
-        yaml.dump(dataset_yaml, f)
-
-    return name_to_index'''
-
 def update_dataset_yaml(db: Session, model_folder: str, baby_profile_id: int, model_type: str) -> dict:
     """
     Rewrites dataset.yaml based on DB classes (model_index).

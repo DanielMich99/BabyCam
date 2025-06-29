@@ -9,7 +9,6 @@ from typing import List
 
 async def start_monitoring_service(camera_profiles: List[CameraTuple], current_user: User, db: Session, request: Request):
     active_sessions = []
-    #origin = request.headers.get("origin") or "http://localhost:3000"
 
     # Extract user ID before the object becomes detached
     user_id = current_user.id if current_user else None

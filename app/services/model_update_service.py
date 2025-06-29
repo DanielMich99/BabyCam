@@ -8,26 +8,8 @@ from app.utils.upload_to_drive import zip_dataset, cleanup_zip, upload_to_drive
 from app.services import training_monitor_service
 from app.models.user_model import User
 import requests
-import time
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-
-'''def should_train_or_finetune(request) -> str:
-    # אימון מלא אם יש קלאסים חדשים או שנמחקו
-    if request.new_classes or request.deleted_classes:
-        return "finetune"
-
-    # Fine-tune רק אם יש תמונות/labels בקלאסים מעודכנים
-    has_training_files = any(
-        item.files.images or item.files.labels
-        for item in request.updated_classes
-    )
-
-    if has_training_files:
-        return "finetune"
-
-    # אחרת – רק risk_level השתנה → אין צורך לאמן
-    return "none" '''
     
 def should_train_or_finetune(request):
     if request.deleted_classes:
