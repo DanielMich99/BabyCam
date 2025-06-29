@@ -8,8 +8,13 @@ class ImageData {
   final List<BoundingBox> boundingBoxes;
   int? _width;
   int? _height;
+  final double? containerWidth;
+  final double? containerHeight;
 
-  ImageData(this.file, this.filename, {this.boundingBoxes = const []});
+  ImageData(this.file, this.filename,
+      {this.boundingBoxes = const [],
+      this.containerWidth,
+      this.containerHeight});
 
   Future<void> loadDimensions() async {
     if (_width == null || _height == null) {
@@ -27,23 +32,52 @@ class ImageData {
         'bounding_boxes': boundingBoxes.map((box) => box.toJson()).toList(),
       };
 
-  Future<String> generateLabelFileContent() async {
+  Future<String> generateLabelFileContent(
+      {double? containerWidth, double? containerHeight}) async {
     await loadDimensions();
     if (_width == null || _height == null) {
       throw Exception('Could not load image dimensions');
     }
+    final usedContainerWidth = containerWidth ?? this.containerWidth;
+    final usedContainerHeight = containerHeight ?? this.containerHeight;
+    if (usedContainerWidth == null || usedContainerHeight == null) {
+      throw Exception('Container size not set');
+    }
+    final imageAspect = _width! / _height!;
+    final containerAspect = usedContainerWidth / usedContainerHeight;
+
+    double displayedImageWidth, displayedImageHeight, offsetX, offsetY;
+
+    if (imageAspect > containerAspect) {
+      // Image fills width, vertical padding
+      displayedImageWidth = usedContainerWidth;
+      displayedImageHeight = usedContainerWidth / imageAspect;
+      offsetX = 0;
+      offsetY = (usedContainerHeight - displayedImageHeight) / 2;
+    } else {
+      // Image fills height, horizontal padding
+      displayedImageHeight = usedContainerHeight;
+      displayedImageWidth = usedContainerHeight * imageAspect;
+      offsetY = 0;
+      offsetX = (usedContainerWidth - displayedImageWidth) / 2;
+    }
 
     final lines = <String>[];
     for (var box in boundingBoxes) {
-      // Convert to YOLO format (normalized coordinates)
-      final xCenter = (box.x + box.width / 2) / _width!;
-      final yCenter = (box.y + box.height / 2) / _height!;
-      final width = box.width / _width!;
-      final height = box.height / _height!;
+      // Map from container to image pixel coordinates
+      final xInImage = ((box.x - offsetX) / displayedImageWidth) * _width!;
+      final yInImage = ((box.y - offsetY) / displayedImageHeight) * _height!;
+      final widthInImage = (box.width / displayedImageWidth) * _width!;
+      final heightInImage = (box.height / displayedImageHeight) * _height!;
 
-      // Format: <class_id> <x_center> <y_center> <width> <height>
+      // YOLO format (normalized)
+      final xCenter = (xInImage + widthInImage / 2) / _width!;
+      final yCenter = (yInImage + heightInImage / 2) / _height!;
+      final normWidth = widthInImage / _width!;
+      final normHeight = heightInImage / _height!;
+
       // For now, we'll use class_id 0 since we're dealing with a single class
-      lines.add('0 $xCenter $yCenter $width $height');
+      lines.add('0 $xCenter $yCenter $normWidth $normHeight');
     }
     return lines.join('\n');
   }
@@ -52,11 +86,15 @@ class ImageData {
     File? file,
     String? filename,
     List<BoundingBox>? boundingBoxes,
+    double? containerWidth,
+    double? containerHeight,
   }) {
     return ImageData(
       file ?? this.file,
       filename ?? this.filename,
       boundingBoxes: boundingBoxes ?? this.boundingBoxes,
+      containerWidth: containerWidth ?? this.containerWidth,
+      containerHeight: containerHeight ?? this.containerHeight,
     );
   }
 }

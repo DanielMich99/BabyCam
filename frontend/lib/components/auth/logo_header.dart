@@ -20,7 +20,7 @@ class LogoHeader extends StatelessWidget {
         Text(
           'BabyCam',
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Colors.blue,
+                color: const Color.fromRGBO(33, 150, 243, 1),
                 fontWeight: FontWeight.bold,
               ),
         ),
