@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/profile_image.dart';
 
 class ChildCameraCube extends StatelessWidget {
   final String childName;
@@ -36,11 +37,7 @@ class ChildCameraCube extends StatelessWidget {
             CircleAvatar(
               radius: 36,
               backgroundColor: Colors.blue[50],
-              backgroundImage:
-                  profilePicture != null ? AssetImage(profilePicture!) : null,
-              child: profilePicture == null
-                  ? Icon(Icons.child_care, color: Colors.grey, size: 36)
-                  : null,
+              backgroundImage: getProfileImageProvider(profilePicture),
             ),
             const SizedBox(height: 10),
             // Baby Name

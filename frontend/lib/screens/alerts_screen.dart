@@ -39,6 +39,20 @@ class _AlertsScreenState extends State<AlertsScreen> {
     }
   }
 
+  // Helper method to get color based on confidence percentage
+  Color _getConfidenceColor(double confidence) {
+    final percentage = confidence * 100;
+    if (percentage >= 50 && percentage < 65) {
+      return Colors.red;
+    } else if (percentage >= 65 && percentage < 80) {
+      return Colors.orange;
+    } else if (percentage >= 80 && percentage <= 100) {
+      return Colors.green;
+    } else {
+      return Colors.grey; // Default for values outside the specified ranges
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -746,8 +760,8 @@ class _AlertsScreenState extends State<AlertsScreen> {
                                             Text(
                                               '${(notification.confidence * 100).toStringAsFixed(1)}%',
                                               style: TextStyle(
-                                                color: _getRiskLevelColor(
-                                                    notification.riskLevel),
+                                                color: _getConfidenceColor(
+                                                    notification.confidence),
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'video_stream_player.dart';
 import 'full_screen_video_stream.dart';
+import '../../utils/profile_image.dart';
 
 class CameraPreviewPager extends StatelessWidget {
   final List<Map<String, dynamic>> activeCameras;
@@ -57,13 +58,8 @@ class CameraPreviewPager extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 24,
-                          backgroundImage: cam['profilePicture'] != null
-                              ? AssetImage(cam['profilePicture'])
-                              : null,
-                          child: cam['profilePicture'] == null
-                              ? Icon(Icons.child_care,
-                                  color: Colors.grey, size: 24)
-                              : null,
+                          backgroundImage:
+                              getProfileImageProvider(cam['profilePicture']),
                         ),
                         const SizedBox(width: 12),
                         Expanded(

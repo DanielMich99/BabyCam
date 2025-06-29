@@ -25,6 +25,20 @@ class NotificationList extends StatelessWidget {
     }
   }
 
+  // Helper method to get color based on confidence percentage
+  Color _getConfidenceColor(double confidence) {
+    final percentage = confidence * 100;
+    if (percentage >= 50 && percentage < 65) {
+      return Colors.red;
+    } else if (percentage >= 65 && percentage < 80) {
+      return Colors.orange;
+    } else if (percentage >= 80 && percentage <= 100) {
+      return Colors.green;
+    } else {
+      return Colors.grey; // Default for values outside the specified ranges
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (notifications.isEmpty) {
@@ -44,6 +58,7 @@ class NotificationList extends StatelessWidget {
       itemBuilder: (context, index) {
         final notification = notifications[index];
         final riskColor = _getRiskLevelColor(notification.riskLevel);
+        final confidenceColor = _getConfidenceColor(notification.confidence);
 
         return Dismissible(
           key: Key(notification.id.toString()),
@@ -76,8 +91,20 @@ class NotificationList extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              subtitle: Text(
-                '${notification.cameraType} - ${(notification.confidence * 100).toStringAsFixed(1)}% confidence',
+              subtitle: Row(
+                children: [
+                  Text(
+                    '${notification.cameraType} - ',
+                  ),
+                  Text(
+                    '${(notification.confidence * 100).toStringAsFixed(1)}%',
+                    style: TextStyle(
+                      color: confidenceColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Text(' confidence'),
+                ],
               ),
               trailing: Text(
                 _formatTimestamp(notification.timestamp),
