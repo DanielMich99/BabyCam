@@ -150,7 +150,7 @@ class _BabiesScreenState extends State<BabiesScreen> {
                             ],
                           ),
                         );
-                        } else if (option == 'head_camera_model') {
+                      } else if (option == 'head_camera_model') {
                         Navigator.push(
                           context,
                           MaterialPageRoute(

@@ -178,6 +178,16 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _handleCameraConnection(
       List<BabyProfile> babies, int index, String cameraType) async {
+    // Prevent camera interaction if detection system is active
+    if (_isDetectionSystemActive(babies)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You must first turn off the detection system.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     if (_cameraConnectionInProgress) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
