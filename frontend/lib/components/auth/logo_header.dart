@@ -7,7 +7,11 @@ class LogoHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(Icons.baby_changing_station, size: 80, color: Colors.blue),
+        Image.asset(
+          'assets/images/babycam_logo.png',
+          width: 200,
+          height: 200,
+        ),
         const SizedBox(height: 16),
         Text(
           'Welcome to',
