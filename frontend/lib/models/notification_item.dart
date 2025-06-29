@@ -9,6 +9,7 @@ class NotificationItem {
   final String? imagePath;
   final bool isViewed;
   final bool isHandled;
+  final String? riskLevel;
 
   NotificationItem({
     required this.id,
@@ -21,6 +22,7 @@ class NotificationItem {
     this.imagePath,
     this.isViewed = false,
     this.isHandled = false,
+    this.riskLevel,
   });
 
   NotificationItem copyWith({
@@ -34,6 +36,7 @@ class NotificationItem {
     String? imagePath,
     bool? isViewed,
     bool? isHandled,
+    String? riskLevel,
   }) {
     return NotificationItem(
       id: id ?? this.id,
@@ -46,6 +49,7 @@ class NotificationItem {
       imagePath: imagePath ?? this.imagePath,
       isViewed: isViewed ?? this.isViewed,
       isHandled: isHandled ?? this.isHandled,
+      riskLevel: riskLevel ?? this.riskLevel,
     );
   }
 
@@ -59,6 +63,7 @@ class NotificationItem {
       cameraType: json['camera_type'],
       timestamp: DateTime.parse(json['timestamp']),
       imagePath: json['image_path'],
+      riskLevel: json['risk_level'],
     );
   }
 }

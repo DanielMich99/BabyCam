@@ -11,6 +11,34 @@ class NotificationList extends StatelessWidget {
     required this.onDelete,
   }) : super(key: key);
 
+  // Helper method to get color based on risk level
+  Color _getRiskLevelColor(String? riskLevel) {
+    switch (riskLevel?.toLowerCase()) {
+      case 'high':
+        return Colors.red;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.yellow;
+      default:
+        return Colors.red; // Default to red for unknown risk levels
+    }
+  }
+
+  // Helper method to get color based on confidence percentage
+  Color _getConfidenceColor(double confidence) {
+    final percentage = confidence * 100;
+    if (percentage >= 50 && percentage < 65) {
+      return Colors.red;
+    } else if (percentage >= 65 && percentage < 80) {
+      return Colors.orange;
+    } else if (percentage >= 80 && percentage <= 100) {
+      return Colors.green;
+    } else {
+      return Colors.grey; // Default for values outside the specified ranges
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (notifications.isEmpty) {
@@ -29,6 +57,9 @@ class NotificationList extends StatelessWidget {
       itemCount: notifications.length,
       itemBuilder: (context, index) {
         final notification = notifications[index];
+        final riskColor = _getRiskLevelColor(notification.riskLevel);
+        final confidenceColor = _getConfidenceColor(notification.confidence);
+
         return Dismissible(
           key: Key(notification.id.toString()),
           background: Container(
@@ -48,10 +79,10 @@ class NotificationList extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: ListTile(
               leading: CircleAvatar(
-                backgroundColor: Colors.red.withOpacity(0.1),
-                child: const Icon(
+                backgroundColor: riskColor.withOpacity(0.1),
+                child: Icon(
                   Icons.warning,
-                  color: Colors.red,
+                  color: riskColor,
                 ),
               ),
               title: Text(
@@ -60,8 +91,20 @@ class NotificationList extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              subtitle: Text(
-                '${notification.cameraType} - ${(notification.confidence * 100).toStringAsFixed(1)}% confidence',
+              subtitle: Row(
+                children: [
+                  Text(
+                    '${notification.cameraType} - ',
+                  ),
+                  Text(
+                    '${(notification.confidence * 100).toStringAsFixed(1)}%',
+                    style: TextStyle(
+                      color: confidenceColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Text(' confidence'),
+                ],
               ),
               trailing: Text(
                 _formatTimestamp(notification.timestamp),

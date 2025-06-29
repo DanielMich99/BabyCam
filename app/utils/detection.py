@@ -75,7 +75,7 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
                     # user = db.query(User).filter_by(id=baby_profile.user_id).first()
 
                     for xyxy, conf, cls in zip(results.boxes.xyxy, results.boxes.conf, results.boxes.cls):
-                        if conf > 0.1:
+                        if conf > 0.5:
                             class_id = int(cls)
                             key = f"{profile_id}_{camera_type}_{class_id}"
                             last_time = last_detection_time.get(key)

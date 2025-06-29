@@ -4,11 +4,13 @@ import '../components/settings/system_settings_tile.dart';
 import '../components/settings/settings_appbar_title.dart';
 import '../screens/home_screen.dart';
 import '../screens/alerts_screen.dart';
+import '../screens/login_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/app_config.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/auth_state.dart';
+import '../services/notification_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -119,6 +121,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       onPressed: () => _showChangePasswordDialog(context),
                     ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.delete_forever),
+                      label: const Text('Delete Account'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      onPressed: () => _showDeleteAccountDialog(context),
+                    ),
                   ],
                 ),
               ),
@@ -198,6 +215,106 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: const Text(
+            'Are you sure you want to delete your account? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _handleDeleteAccount();
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    try {
+      // Show loader
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+      // 1. Gather baby_profile_ids
+      final token = await _getToken();
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+      final babiesResponse = await http.get(
+        Uri.parse('${AppConfig.baseUrl}/baby_profiles/my_profiles'),
+        headers: headers,
+      );
+      if (babiesResponse.statusCode != 200) {
+        if (mounted) Navigator.of(context).pop();
+        _showSnackBar('Failed to fetch baby profiles: ${babiesResponse.body}');
+        return;
+      }
+      final List<dynamic> babies = jsonDecode(babiesResponse.body);
+      final List<int> babyProfileIds =
+          babies.map((b) => b['id'] as int).toList();
+
+      // 2. Get FCM token
+      String? fcmToken;
+      try {
+        fcmToken = await NotificationService().getFCMToken();
+      } catch (e) {
+        fcmToken = null;
+      }
+      if (fcmToken == null) {
+        if (mounted) Navigator.of(context).pop();
+        _showSnackBar('Failed to get FCM token.');
+        return;
+      }
+
+      // 3. Call logout endpoint and clear state
+      final logoutUrl = Uri.parse('${AppConfig.baseUrl}/auth/logout');
+      final logoutBody = jsonEncode({
+        'baby_profile_ids': babyProfileIds,
+        'fcm_token': fcmToken,
+      });
+      final logoutResponse =
+          await http.post(logoutUrl, headers: headers, body: logoutBody);
+      if (logoutResponse.statusCode != 200) {
+        if (mounted) Navigator.of(context).pop();
+        _showSnackBar('Logout failed: ${logoutResponse.body}');
+        return;
+      }
+      await AuthState.logout();
+      // 4. Call delete user endpoint
+      final deleteUrl = Uri.parse('${AppConfig.baseUrl}/users/me');
+      final deleteResponse = await http.delete(deleteUrl, headers: headers);
+      if (mounted) Navigator.of(context).pop(); // Remove loader
+      if (deleteResponse.statusCode == 200) {
+        // 5. Redirect to login screen
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+            (route) => false,
+          );
+        }
+      } else {
+        _showSnackBar('Delete failed: ${deleteResponse.body}');
+      }
+    } catch (e) {
+      if (mounted) Navigator.of(context).pop();
+      _showSnackBar('Error: $e');
+    }
   }
 
   void _showSnackBar(String message) {

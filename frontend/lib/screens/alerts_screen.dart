@@ -25,6 +25,34 @@ class _AlertsScreenState extends State<AlertsScreen> {
   Set<int> _selectedAlertIds = {}; // Track selected alert IDs for bulk deletion
   bool _isSelectionMode = false; // Track if we're in multi-select mode
 
+  // Helper method to get color based on risk level
+  Color _getRiskLevelColor(String? riskLevel) {
+    switch (riskLevel?.toLowerCase()) {
+      case 'high':
+        return Colors.red;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.yellow;
+      default:
+        return Colors.red; // Default to red for unknown risk levels
+    }
+  }
+
+  // Helper method to get color based on confidence percentage
+  Color _getConfidenceColor(double confidence) {
+    final percentage = confidence * 100;
+    if (percentage >= 50 && percentage < 65) {
+      return Colors.red;
+    } else if (percentage >= 65 && percentage < 80) {
+      return Colors.orange;
+    } else if (percentage >= 80 && percentage <= 100) {
+      return Colors.green;
+    } else {
+      return Colors.grey; // Default for values outside the specified ranges
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -246,6 +274,9 @@ class _AlertsScreenState extends State<AlertsScreen> {
 
     if (confirmed == true) {
       try {
+        // Store the count before clearing
+        final deletedCount = _selectedAlertIds.length;
+
         // Group selected alerts by baby profile ID
         final Map<int, List<int>> alertsByBaby = {};
 
@@ -273,7 +304,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
                 content: Text(
-                    'Deleted ${_selectedAlertIds.length} alert${_selectedAlertIds.length == 1 ? '' : 's'}')),
+                    'Deleted $deletedCount alert${deletedCount == 1 ? '' : 's'}')),
           );
         }
       } catch (e) {
@@ -713,7 +744,8 @@ class _AlertsScreenState extends State<AlertsScreen> {
                                           children: [
                                             Icon(
                                               Icons.warning_amber_rounded,
-                                              color: Colors.red.shade700,
+                                              color: _getRiskLevelColor(
+                                                  notification.riskLevel),
                                             ),
                                             const SizedBox(width: 8),
                                             Expanded(
@@ -728,10 +760,8 @@ class _AlertsScreenState extends State<AlertsScreen> {
                                             Text(
                                               '${(notification.confidence * 100).toStringAsFixed(1)}%',
                                               style: TextStyle(
-                                                color: notification.confidence >
-                                                        0.8
-                                                    ? Colors.red
-                                                    : Colors.orange,
+                                                color: _getConfidenceColor(
+                                                    notification.confidence),
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),

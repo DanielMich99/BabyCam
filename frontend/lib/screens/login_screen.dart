@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import '../services/auth_service.dart';
 import '../services/auth_state.dart';
 import '../services/websocket_service.dart';
@@ -11,7 +8,6 @@ import 'signup_screen.dart';
 import 'home_screen.dart';
 import '../components/auth/logo_header.dart';
 import '../components/auth/login_form.dart';
-import '../components/auth/social_login_buttons.dart';
 import '../config/app_config.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -36,32 +32,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // Re-initialize notification service to ensure FCM token is registered
     await NotificationService().reinitialize();
-  }
-
-  Future<void> _handleGoogleSignIn() async {
-    try {
-      final GoogleSignIn googleSignIn = GoogleSignIn();
-      final result = await googleSignIn.signIn();
-      if (result != null) {
-        // Handle successful Google sign in
-        print('Google Sign In: \\${result.email}');
-      }
-    } catch (error) {
-      print('Google Sign In Error: \\${error}');
-    }
-  }
-
-  Future<void> _handleFacebookSignIn() async {
-    try {
-      final result = await FacebookAuth.instance.login();
-      if (result.status == LoginStatus.success) {
-        // Handle successful Facebook sign in
-        final userData = await FacebookAuth.instance.getUserData();
-        print('Facebook Sign In: \\${userData['email']}');
-      }
-    } catch (error) {
-      print('Facebook Sign In Error: \\${error}');
-    }
   }
 
   Future<void> _handleLogin() async {
@@ -167,38 +137,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   passwordController: _passwordController,
                   isLoading: _isLoading,
                   onLogin: _handleLogin,
-                ),
-                const SizedBox(height: 24),
-                SocialLoginButtons(
-                  onGoogleSignIn: _handleGoogleSignIn,
-                  onFacebookSignIn: _handleFacebookSignIn,
-                ),
-                const SizedBox(height: 24),
-                // Test notification button
-                ElevatedButton(
-                  onPressed: () async {
-                    try {
-                      await NotificationService().showTestNotification();
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Test notification sent!'),
-                            backgroundColor: Colors.blue,
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error: $e'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  child: const Text('Test Notification'),
                 ),
                 const SizedBox(height: 24),
                 Row(

@@ -36,6 +36,20 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isCameraOn = false;
   late Future<List<BabyProfile>> _babiesFuture;
 
+  // Helper method to get color based on risk level
+  Color _getRiskLevelColor(String? riskLevel) {
+    switch (riskLevel?.toLowerCase()) {
+      case 'high':
+        return Colors.red;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.yellow;
+      default:
+        return Colors.red; // Default to red for unknown risk levels
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -82,6 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
             confidence: detection['confidence'].toDouble(),
             cameraType: detection['camera_type'],
             timestamp: DateTime.parse(detection['timestamp']),
+            riskLevel: detection['risk_level'],
           ));
     });
 
@@ -89,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('New detection: ${detection['class_name']}'),
-        backgroundColor: Colors.red,
+        backgroundColor: _getRiskLevelColor(detection['risk_level']),
         duration: const Duration(seconds: 3),
         action: SnackBarAction(
           label: 'Dismiss',
