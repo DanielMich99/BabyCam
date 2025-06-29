@@ -26,6 +26,8 @@ class _BoundingBoxEditorState extends State<BoundingBoxEditor> {
   late List<BoundingBox> boundingBoxes;
   BoundingBox? currentBox;
   Offset? startPoint;
+  double? _containerWidth;
+  double? _containerHeight;
 
   @override
   void initState() {
@@ -79,73 +81,98 @@ class _BoundingBoxEditorState extends State<BoundingBoxEditor> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Bounding Box Editor'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 16),
-          Container(
-            width: 400,
-            height: 400,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-            ),
-            child: GestureDetector(
-              onPanStart: (details) => _startDrawing(details.localPosition),
-              onPanUpdate: (details) => _updateDrawing(details.localPosition),
-              onPanEnd: (_) => _endDrawing(),
-              child: Stack(
-                children: [
-                  Image.file(
-                    widget.image.file,
-                    fit: BoxFit.contain,
-                  ),
-                  ...boundingBoxes.asMap().entries.map((entry) {
-                    final box = entry.value;
-                    return Positioned(
-                      left: box.x,
-                      top: box.y,
+      content: SizedBox(
+        width: 440,
+        height: 520,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final width =
+                      constraints.maxWidth < 400 ? constraints.maxWidth : 400.0;
+                  final height = constraints.maxHeight < 400
+                      ? constraints.maxHeight
+                      : 400.0;
+                  _containerWidth = width;
+                  _containerHeight = height;
+                  return Center(
+                    child: Container(
+                      width: width,
+                      height: height,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                      ),
                       child: GestureDetector(
-                        onTap: () => _deleteBox(entry.key),
-                        child: Container(
-                          width: box.width,
-                          height: box.height,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.red, width: 2),
-                          ),
-                          child: Center(
-                            child: Container(
-                              color: Colors.red.withOpacity(0.5),
-                              padding: const EdgeInsets.all(4),
-                              child: Text(
-                                box.label,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
+                        onPanStart: (details) =>
+                            _startDrawing(details.localPosition),
+                        onPanUpdate: (details) =>
+                            _updateDrawing(details.localPosition),
+                        onPanEnd: (_) => _endDrawing(),
+                        child: Stack(
+                          children: [
+                            Image.file(
+                              widget.image.file,
+                              fit: BoxFit.contain,
+                              width: width,
+                              height: height,
+                            ),
+                            ...boundingBoxes.asMap().entries.map((entry) {
+                              final box = entry.value;
+                              return Positioned(
+                                left: box.x,
+                                top: box.y,
+                                child: GestureDetector(
+                                  onTap: () => _deleteBox(entry.key),
+                                  child: Container(
+                                    width: box.width,
+                                    height: box.height,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                          color: Colors.red, width: 2),
+                                    ),
+                                    child: Center(
+                                      child: Container(
+                                        color: Colors.red.withOpacity(0.5),
+                                        padding: const EdgeInsets.all(4),
+                                        child: Text(
+                                          box.label,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                            if (currentBox != null)
+                              Positioned(
+                                left: currentBox!.x,
+                                top: currentBox!.y,
+                                child: Container(
+                                  width: currentBox!.width,
+                                  height: currentBox!.height,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                        color: Colors.blue, width: 2),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                  if (currentBox != null)
-                    Positioned(
-                      left: currentBox!.x,
-                      top: currentBox!.y,
-                      child: Container(
-                        width: currentBox!.width,
-                        height: currentBox!.height,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.blue, width: 2),
+                          ],
                         ),
                       ),
                     ),
-                ],
+                  );
+                },
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -157,6 +184,8 @@ class _BoundingBoxEditorState extends State<BoundingBoxEditor> {
             onPressed: () {
               final updatedImage = widget.image.copyWith(
                 boundingBoxes: boundingBoxes,
+                containerWidth: _containerWidth,
+                containerHeight: _containerHeight,
               );
               widget.onSave(updatedImage);
               widget.onSaveAll!();
@@ -168,6 +197,8 @@ class _BoundingBoxEditorState extends State<BoundingBoxEditor> {
             onPressed: () {
               final updatedImage = widget.image.copyWith(
                 boundingBoxes: boundingBoxes,
+                containerWidth: _containerWidth,
+                containerHeight: _containerHeight,
               );
               widget.onSave(updatedImage);
               Navigator.pop(context);
