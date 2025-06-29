@@ -2,14 +2,11 @@ import asyncio
 import time
 import socket
 import http.client
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple
 
 from sqlalchemy.orm import Session
 from app.models.baby_profile_model import BabyProfile
 from database.database import SessionLocal
-from app.utils.esp32_stream_buffer import ESP32StreamBuffer
-from app.utils.detection import stream_buffers  # ודא שזה import נכון לפי איפה שזה מוגדר אצלך
-
 
 class CameraConnectionManager:
     def __init__(self):

@@ -36,9 +36,6 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
         open_fail_count = 0
         max_read_fail_count = 10
         max_open_fail_count = 3 
-        #cap = cv2.VideoCapture(stream_url)
-        baby_profile = db.query(BabyProfile).filter_by(id=profile_id).first()
-        #user = db.query(User).filter_by(id=baby_profile.user_id).first()
         try:
             while True:
                 try:
@@ -51,9 +48,6 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
                             if open_fail_count < max_open_fail_count:
                                 open_fail_count += 1
                                 print("[RECONNECT] VideoCapture not opened, retrying...")
-                                # cap.release()
-                                # await asyncio.sleep(3)
-                                # cap = cv2.VideoCapture(stream_url)
                                 stream_buffer.restart()
                                 read_fail_count = 0
                                 continue
@@ -70,9 +64,6 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
 
                     results = model(frame)[0]
                     now = datetime.utcnow()
-
-                    # baby_profile = db.query(BabyProfile).filter_by(id=profile_id).first()
-                    # user = db.query(User).filter_by(id=baby_profile.user_id).first()
 
                     for xyxy, conf, cls in zip(results.boxes.xyxy, results.boxes.conf, results.boxes.cls):
                         if conf > 0.5:
@@ -132,7 +123,6 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
                                         try:
                                             tokens = [t.token for t in fresh_db.query(UserFCMToken).filter_by(user_id=user_id).all()]
                                             if tokens:
-                                                message = f"Object detected: {class_name} ({camera_type}) - Risk Level: {risk_level.value}"
                                                 await asyncio.to_thread(
                                                     send_push_notifications,
                                                     tokens,
@@ -233,15 +223,13 @@ async def notify_disconnection_and_stop(profile_id: int, camera_type: str, user_
             )
 
             # שליחת התראה ב־Push Notification
-            #user = db.query(User).filter_by(id=baby_profile.user_id).first()
             if user_id:
+
                 # Create a fresh database session to avoid session binding issues
                 fresh_db = SessionLocal()
                 try:
                     tokens = [t.token for t in fresh_db.query(UserFCMToken).filter_by(user_id=user_id).all()]
                     if tokens:
-                        title = "📷 Camera Disconnected"
-                        body = f"{camera_type.replace('_', ' ').title()} for '{baby_profile.name}' has been disconnected"
                         await asyncio.to_thread(
                             send_push_notifications,
                             tokens,

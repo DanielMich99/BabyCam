@@ -46,9 +46,3 @@ class ESP32StreamBuffer:
     def get_latest_frame(self):
         with self._lock:
             return self.frame.copy() if self.frame is not None else None
-
-
-# Usage Example:
-# stream_buffer = ESP32StreamBuffer("http://192.168.x.x:81/stream")
-# stream_buffer.start()
-# ... then call stream_buffer.get_latest_frame() in YOLO or a FastAPI endpoint

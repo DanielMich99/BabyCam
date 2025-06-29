@@ -22,27 +22,6 @@ engine = create_engine(DATABASE_URL)
 # יצירת מחבר הסשן
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 📌 פונקציה שטוענת את כל המודלים **לפני יצירת טבלאות**
-'''def import_models():
-    import app.models.user_model
-    import app.models.file_model
-    import app.models.baby_profile_model
-    import app.models.detection_result_model'''
-
-# פונקציה ליצירת כל הטבלאות במסד הנתונים
-'''def init_db():
-    print("📌 טוען מודלים ויוצר טבלאות...")
-
-    # 🚀 טוען את כל המודלים
-    import_models()
-
-    print("🔍 טבלאות ש-SQLAlchemy מזהה:", Base.metadata.tables.keys())
-
-    # יצירת כל הטבלאות במסד הנתונים
-    Base.metadata.create_all(bind=engine)
-
-    print("✅ טבלאות נוצרו בהצלחה!")'''
-
 # ✅ פונקציה ליצירת חיבור למסד הנתונים בכל בקשה
 def get_db():
     db = SessionLocal()
@@ -53,5 +32,4 @@ def get_db():
 
 # אם הקובץ מורץ ישירות, נבצע יצירת טבלאות
 if __name__ == "__main__":
-    #init_db()
     pass
