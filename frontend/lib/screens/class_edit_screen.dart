@@ -165,12 +165,42 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
   }
 
   Future<void> _save() async {
-    if (!allImagesLabeled) return;
+    final unlabeledCount =
+        images.where((img) => img.boundingBoxes.isEmpty).length;
+    if (unlabeledCount > 0) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Unlabeled Images'),
+          content: Text(
+              'Are you sure you want to continue? You have $unlabeledCount unlabeled image${unlabeledCount > 1 ? 's' : ''}.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Continue'),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true) return;
+    }
+
+    // Ensure all images have containerWidth and containerHeight set
+    final fixedImages = images.map((img) {
+      if (img.containerWidth == null || img.containerHeight == null) {
+        return img.copyWith(containerWidth: 400.0, containerHeight: 400.0);
+      }
+      return img;
+    }).toList();
 
     // Instead of uploading, return the new class data to the previous screen
     final newClass = {
       'className': widget.className,
-      'images': images,
+      'images': fixedImages,
       'riskLevel': _riskLevel,
       'babyProfileId': widget.babyProfileId,
       'modelType': widget.modelType,
@@ -313,7 +343,7 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   ElevatedButton(
-                    onPressed: (allImagesLabeled && !_isSaving) ? _save : null,
+                    onPressed: (_isSaving) ? null : _save,
                     child: _isSaving
                         ? const SizedBox(
                             width: 20,
