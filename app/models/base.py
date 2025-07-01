@@ -1,9 +1,9 @@
 from sqlalchemy.orm import declarative_base
 
-# יצירת מחלקת בסיס לכל המודלים
+# Create a base class for all SQLAlchemy models
 Base = declarative_base()
 
-# ייבוא כל המודלים כדי ש-Alembic יזהה אותם
+# Import all models so Alembic can detect and include them in migrations
 from app.models import (
     user_model,
     baby_profile_model,

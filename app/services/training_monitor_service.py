@@ -3,23 +3,23 @@ import time
 import threading
 import asyncio
 from datetime import datetime, timezone
+
 from app.utils.google_drive_service import GoogleDriveService
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
-from app.utils.config import config
-from app.utils.websocket_broadcast import broadcast_detection  # שימוש בחדש לפי המימוש שלך
+from app.utils.websocket_broadcast import broadcast_detection
 from app.utils.fcm_push import send_push_notifications
 from app.models.user_model import User, UserFCMToken
 from app.models.baby_profile_model import BabyProfile
 from sqlalchemy.orm import Session
 from database.database import SessionLocal
+from app.utils.config import config
 
-# יצירת אובייקט שירות ל־Drive
+# Initialize Drive service
 drive_service = GoogleDriveService()
 
-# רשימת אימונים פעילים למעקב
+# List of pending training jobs to monitor
 pending_trainings = []
 
+# Register a new model training job to be monitored
 def register_pending_training(user_id: int, baby_profile_id: int, camera_type: str):
     pending_trainings.append({
         "user_id": user_id,
@@ -28,20 +28,23 @@ def register_pending_training(user_id: int, baby_profile_id: int, camera_type: s
         "start_time": time.time()
     })
 
+# Infinite polling loop to check for new model files in Google Drive
 def polling_loop():
     while True:
         try:
             db: Session = SessionLocal()
 
-            for training in pending_trainings[:]:  # נ iterate על עותק כדי לאפשר הסרה תוך כדי ריצה
+            for training in pending_trainings[:]:  # Iterate over a copy to allow safe removal
                 user_id = training["user_id"]
                 baby_profile_id = training["baby_profile_id"]
                 camera_type = training["camera_type"]
                 start_time = training["start_time"]
 
+                # Check if model file has appeared in Drive and is newer than start_time
                 if check_and_download_model(baby_profile_id, camera_type, start_time):
                     print(f"[TRAINING MONITOR] Model ready for {baby_profile_id} - {camera_type}")
 
+                    # Notify frontend via WebSocket
                     event = {
                         "type": "model_training_completed",
                         "baby_profile_id": baby_profile_id,
@@ -49,7 +52,7 @@ def polling_loop():
                     }
                     asyncio.run(broadcast_detection(user_id, event))
 
-                    # שליחת פוש
+                    # Send FCM push notification
                     user = db.query(User).filter_by(id=user_id).first()
                     if user:
                         tokens = [t.token for t in db.query(UserFCMToken).filter_by(user_id=user.id).all()]
@@ -94,29 +97,32 @@ def polling_loop():
                                 config.GOOGLE_CREDENTIALS_PATH
                             )
 
-
+                    # Remove from pending list after success
                     pending_trainings.remove(training)
 
             db.close()
             time.sleep(10)
+
         except Exception as e:
             print(f"[ERROR] Training polling error: {e}")
             time.sleep(5)
 
+# Starts the background polling thread on app startup
 def start_monitoring_thread():
     thread = threading.Thread(target=polling_loop, daemon=True)
     thread.start()
-    
+
+# Checks whether a trained model exists on Google Drive and downloads it if valid
 def check_and_download_model(baby_profile_id: int, camera_type: str, start_time: float) -> bool:
     file_name = f"{baby_profile_id}_{camera_type}_model.pt"
     local_path = os.path.join("uploads", "training_data", str(baby_profile_id), camera_type, file_name)
 
-    # מוודא שהמבנה של התיקיות קיים בדרייב
+    # Ensure folders exist in Drive
     root_folder_id = drive_service.get_or_create_folder("babycam_data")
     profile_folder_id = drive_service.get_or_create_folder(str(baby_profile_id), root_folder_id)
     model_folder_id = drive_service.get_or_create_folder(camera_type, profile_folder_id)
 
-    # בודק אם קובץ קיים עם createdTime
+    # Query for the model file in Drive
     query = f"'{model_folder_id}' in parents and name='{file_name}' and trashed=false"
     results = drive_service.service.files().list(q=query, fields="files(id, name, createdTime)").execute().get('files', [])
 
@@ -128,22 +134,25 @@ def check_and_download_model(baby_profile_id: int, camera_type: str, start_time:
     created_time = datetime.fromisoformat(created_time_str.replace("Z", "+00:00"))
     start_dt = datetime.fromtimestamp(start_time, tz=timezone.utc)
 
+    # Skip if file is older than the training session
     if created_time < start_dt:
         print(f"[SKIP] Found old model created at {created_time}, waiting for new model...")
         return False
 
-    # מוריד את הקובץ
+    # Download the model to the local path
     file_id = file_metadata['id']
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
     drive_service.download_file(file_id, local_path)
 
+    # Update last model update time in DB
     db: Session = SessionLocal()
     profile = db.query(BabyProfile).filter(BabyProfile.id == baby_profile_id).first()
     if profile:
+        now = datetime.now()
         if camera_type == "head_camera":
-            profile.head_camera_model_last_updated_time = datetime.now()
+            profile.head_camera_model_last_updated_time = now
         else:
-            profile.static_camera_model_last_updated_time = datetime.now()
+            profile.static_camera_model_last_updated_time = now
         db.commit()
     db.close()
 

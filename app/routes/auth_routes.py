@@ -66,6 +66,7 @@ def remove_fcm_token(
     """
     return delete_fcm_token_controller(token_request.token, db, current_user)
 
+
 @router.post("/logout")
 async def logout_user(
     data: LogoutRequest,
@@ -73,4 +74,10 @@ async def logout_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    """
+    Fully log out the user:
+    - Deletes their FCM token
+    - Turns off all camera connections
+    - Stops active monitoring
+    """
     return await logout_user_controller(db, current_user, data, request)

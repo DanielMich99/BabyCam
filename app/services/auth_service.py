@@ -1,3 +1,5 @@
+# Authentication and user session management logic
+
 from datetime import datetime, timedelta, timezone
 import jwt
 from typing import List
@@ -16,13 +18,14 @@ from app.utils.config import config
 from app.utils.hashing import verify_password
 from app.schemas.monitoring_schemas import CameraTuple
 
-
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-refresh_tokens = {}  # In-memory storage of refresh tokens per user
+
+# In-memory storage of refresh tokens
+refresh_tokens = {}
 
 
-# Register a new user if username is not already taken
+# Register a new user if username is available
 def register_user(db: Session, register_data: RegisterRequest):
     existing_user = db.query(User).filter(User.username == register_data.username).first()
     if existing_user:
@@ -36,7 +39,7 @@ def register_user(db: Session, register_data: RegisterRequest):
     return create_user(db, new_user)
 
 
-# Authenticate a user by verifying their credentials and return access + refresh tokens
+# Verify credentials and return JWT access + refresh tokens
 def authenticate_user(db: Session, username: str, password: str):
     user = db.query(User).filter(User.username == username).first()
     if not user or not verify_password(password, user.hashed_password):
@@ -49,7 +52,7 @@ def authenticate_user(db: Session, username: str, password: str):
 
     access_token = create_access_token(username)
     refresh_token = create_refresh_token(username)
-    refresh_tokens[username] = refresh_token  # Save refresh token in memory
+    refresh_tokens[username] = refresh_token
 
     return {
         "access_token": access_token,
@@ -59,7 +62,7 @@ def authenticate_user(db: Session, username: str, password: str):
     }
 
 
-# Generate a new JWT access token
+# Create access token with expiration
 def create_access_token(username: str):
     return jwt.encode(
         {
@@ -71,7 +74,7 @@ def create_access_token(username: str):
     )
 
 
-# Generate a new JWT refresh token
+# Create refresh token with longer expiration
 def create_refresh_token(username: str):
     return jwt.encode(
         {
@@ -83,7 +86,7 @@ def create_refresh_token(username: str):
     )
 
 
-# Verify a refresh token and issue a new access token
+# Validate refresh token and issue new access token
 def refresh_access_token(refresh_token: str):
     try:
         payload = jwt.decode(refresh_token, config.SECRET_KEY, algorithms=[config.ALGORITHM])
@@ -101,7 +104,7 @@ def refresh_access_token(refresh_token: str):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
 
-# Save an FCM token to a user, if it doesn't already exist
+# Save FCM token to user
 def add_fcm_token_to_user(db: Session, username: str, token: str):
     user = db.query(User).filter(User.username == username).first()
     if user is None:
@@ -109,7 +112,7 @@ def add_fcm_token_to_user(db: Session, username: str, token: str):
 
     existing_token = db.query(UserFCMToken).filter(UserFCMToken.token == token).first()
     if existing_token:
-        return existing_token  # Avoid duplicate token entries
+        return existing_token
 
     new_token = UserFCMToken(user_id=user.id, token=token)
     db.add(new_token)
@@ -118,7 +121,7 @@ def add_fcm_token_to_user(db: Session, username: str, token: str):
     return new_token
 
 
-# Delete an FCM token associated with a user
+# Remove an FCM token from user
 def delete_fcm_token(token: str, db: Session, current_user: User):
     username = current_user.username
     user = db.query(User).filter(User.username == username).first()
@@ -134,25 +137,28 @@ def delete_fcm_token(token: str, db: Session, current_user: User):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Token not found")
 
 
+# Handle full logout logic
 async def process_logout(db: Session, user: User, baby_profile_ids: List[int], fcm_token: str, request: Request):
-    # שלב 1: בדיקת בעלות
+    # Step 1: Validate ownership of baby profiles
     owned_ids = db.query(BabyProfile.id).filter(BabyProfile.user_id == user.id).all()
     owned_ids_set = {r.id for r in owned_ids}
     if not set(baby_profile_ids).issubset(owned_ids_set):
         raise HTTPException(status_code=403, detail="Unauthorized access to baby profile(s)")
 
-    # שלב 2: מחיקת FCM token
+    # Step 2: Remove FCM token
     token_entry = db.query(UserFCMToken).filter_by(user_id=user.id, token=fcm_token).first()
+    if token_entry:
+        db.delete(token_entry)
+        db.commit()
     if not token_entry:
-        raise HTTPException(status_code=404, detail="FCM token not found")
-    db.delete(token_entry)
-    db.commit()
+        # Don't block logout if token isn't found — just log
+        print("FCM token not found")
 
-    # שלב 3: בדיקה אם נשארו טוקנים ליוזר
+    # Step 3: If user still has other FCM tokens, don't fully log out
     if db.query(UserFCMToken).filter_by(user_id=user.id).count() > 0:
         return {"status": "partial_logout"}
 
-    # שלב 4: ניהול ניקוי מצלמות וזיהוי
+    # Step 4: Disconnect all cameras and stop monitoring
     profiles = db.query(BabyProfile).filter(BabyProfile.user_id == user.id).all()
     monitoring_to_stop = []
 
@@ -171,7 +177,7 @@ async def process_logout(db: Session, user: User, baby_profile_ids: List[int], f
 
     db.commit()
 
-    # שלב 5: כיבוי זיהוי (מחכה לסיום)
+    # Step 5: Stop active monitoring services
     if monitoring_to_stop:
         from app.services.monitoring_service import stop_monitoring_service
         await stop_monitoring_service(monitoring_to_stop, db)
@@ -179,7 +185,7 @@ async def process_logout(db: Session, user: User, baby_profile_ids: List[int], f
     return {"status": "logout_successful"}
 
 
-# Get the currently authenticated user from the access token
+# Get current user based on access token
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
@@ -203,7 +209,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 
-# Manually verify a JWT token and return its payload (without DB lookup)
+# Verify JWT token manually and return decoded payload (used in WebSocket or internal tools)
 def verify_jwt_token(token: str):
     try:
         payload = jwt.decode(token, config.SECRET_KEY, algorithms=[config.ALGORITHM])

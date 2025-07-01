@@ -18,12 +18,16 @@ import sys
 import os
 from fastapi.openapi.utils import get_openapi
 
+# Ensure the current directory is added to the Python path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
+# Initialize FastAPI application
 app = FastAPI()
 
+# Start background thread for monitoring when model training finishes
 training_monitor_service.start_monitoring_thread()
 
+# Custom OpenAPI schema with JWT bearer authentication added
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
@@ -34,6 +38,8 @@ def custom_openapi():
         description="Backend secured API for BabyCam project",
         routes=app.routes,
     )
+
+    # Add JWT security scheme to OpenAPI
     openapi_schema["components"]["securitySchemes"] = {
         "BearerAuth": {
             "type": "http",
@@ -41,27 +47,31 @@ def custom_openapi():
             "bearerFormat": "JWT",
         }
     }
+
+    # Apply the security scheme globally to all endpoints
     for path in openapi_schema["paths"].values():
         for method in path.values():
             method["security"] = [{"BearerAuth": []}]
+    
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
+# Override the default OpenAPI schema generator
 app.openapi = custom_openapi
 
-# Configure CORS
+# Enable Cross-Origin Resource Sharing (CORS) for all origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=["*"],  # Allow requests from any origin
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
 )
 
-# אתחול מסד הנתונים
+# Initialize database (create tables if needed)
 init_db()
 
-# חיבור הנתיבים מהתיקייה `app/routes/`
+# Include API routes from the routes directory
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(user_router)
 app.include_router(model_update_router, tags=["Model Update"])
@@ -75,6 +85,7 @@ app.include_router(realtime_routes.router)
 app.include_router(class_routes.router)
 app.include_router(class_suggestion_routes.router)
 
+# Run the server manually (for development/testing)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

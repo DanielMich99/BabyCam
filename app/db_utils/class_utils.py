@@ -3,6 +3,8 @@ from app.models.class_model import ClassObject
 from app.models.detection_result_model import DetectionResult
 from app.schemas.model_update_schema import ClassItem
 
+# Inserts new class entries for a given baby profile and camera type.
+# Each new class is assigned a model_index based on current class count.
 def insert_new_classes(db: Session, baby_profile_id: int, new_classes: list[ClassItem], model_type: str):
     current_count = db.query(ClassObject).filter_by(baby_profile_id=baby_profile_id, camera_type=model_type).count()
 
@@ -10,15 +12,17 @@ def insert_new_classes(db: Session, baby_profile_id: int, new_classes: list[Clas
         new_class = ClassObject(
             name=item.name,
             risk_level=item.risk_level,
-            model_index=current_count + idx,
+            model_index=current_count + idx,  # Assign model index after existing classes
             camera_type=model_type,
             baby_profile_id=baby_profile_id
         )
         db.add(new_class)
     db.commit()
 
+# Deletes the specified class names for a given baby profile and camera type.
+# Also removes all detection results associated with those classes and reorders remaining model_index values.
 def delete_db_classes(db: Session, baby_profile_id: int, deleted_classes: list[str], model_type: str):
-    # שלב 1: מחיקת detection_results שמשויכים לקלאסים שיימחקו
+    # Step 1: Delete detection results tied to the classes being deleted
     class_ids_to_delete = db.query(ClassObject.id).filter(
         ClassObject.baby_profile_id == baby_profile_id,
         ClassObject.camera_type == model_type,
@@ -29,7 +33,7 @@ def delete_db_classes(db: Session, baby_profile_id: int, deleted_classes: list[s
         DetectionResult.class_id.in_(class_ids_to_delete)
     ).delete(synchronize_session=False)
 
-    # שלב 2: מחיקת הקלאסים עצמם
+    # Step 2: Delete the class entries themselves
     db.query(ClassObject).filter(
         ClassObject.baby_profile_id == baby_profile_id,
         ClassObject.camera_type == model_type,
@@ -38,16 +42,17 @@ def delete_db_classes(db: Session, baby_profile_id: int, deleted_classes: list[s
 
     db.commit()
 
-    # שלב 3: עדכון אינדקסים
+    # Step 3: Reassign model_index to remaining classes
     remaining_classes = db.query(ClassObject).filter_by(
         baby_profile_id=baby_profile_id, camera_type=model_type
     ).order_by(ClassObject.model_index.asc()).all()
 
     for idx, cls in enumerate(remaining_classes):
-        cls.model_index = idx
+        cls.model_index = idx  # Reindex remaining classes sequentially
 
     db.commit()
 
+# Updates risk_level for existing classes that match by name, profile, and camera type.
 def update_db_classes(db: Session, baby_profile_id: int, updated_classes: list[ClassItem], model_type: str):
     for item in updated_classes:
         db_class = db.query(ClassObject).filter_by(
