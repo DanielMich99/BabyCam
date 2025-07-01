@@ -19,6 +19,7 @@ class ClassEditScreen extends StatefulWidget {
   final List<ImageData> initialImages;
   final int babyProfileId;
   final String modelType;
+  final String initialRiskLevel;
 
   const ClassEditScreen({
     Key? key,
@@ -26,6 +27,7 @@ class ClassEditScreen extends StatefulWidget {
     required this.babyProfileId,
     required this.modelType,
     this.initialImages = const [],
+    this.initialRiskLevel = 'medium',
   }) : super(key: key);
 
   @override
@@ -45,6 +47,7 @@ class _ClassEditScreenState extends State<ClassEditScreen> {
   void initState() {
     super.initState();
     images = List.from(widget.initialImages);
+    _riskLevel = widget.initialRiskLevel;
   }
 
   String _generateImageFilename() {

@@ -121,6 +121,7 @@ class _DangerousObjectListDialogState extends State<DangerousObjectListDialog> {
           modelType: _selectedCameraType == 'head_camera'
               ? 'head_camera_model'
               : 'static_camera_model',
+          initialRiskLevel: obj['risk_level'] ?? 'medium',
         ),
       ),
     );

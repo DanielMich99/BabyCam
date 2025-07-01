@@ -147,6 +147,7 @@ class _ManageDangerousObjectsScreenState
           modelType: cameraType == 'Head Camera'
               ? 'head_camera_model'
               : 'static_camera_model',
+          initialRiskLevel: riskLevel,
         ),
       ),
     );
@@ -384,8 +385,38 @@ class _ManageDangerousObjectsScreenState
                   const SizedBox(height: 24),
                 PendingUpdatesCard(
                   pendingUpdates: _pendingUpdates,
-                  onEdit: (index) => _startAddObjectFlow(context,
-                      editClass: _pendingUpdates[index], editIndex: index),
+                  onEdit: (index) async {
+                    final editClass = _pendingUpdates[index];
+                    String cameraType =
+                        editClass['modelType'] == 'head_camera_model'
+                            ? 'Head Camera'
+                            : 'Static Camera';
+                    final userService = UserService();
+                    final babyProfile =
+                        await userService.getCurrentBabyProfile();
+                    if (!context.mounted) return;
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ClassEditScreen(
+                          className: editClass['className'],
+                          initialImages: List.from(editClass['images']),
+                          babyProfileId: babyProfile.id,
+                          modelType: cameraType == 'Head Camera'
+                              ? 'head_camera_model'
+                              : 'static_camera_model',
+                          initialRiskLevel: editClass['riskLevel'] ??
+                              editClass['risk_level'] ??
+                              'medium',
+                        ),
+                      ),
+                    );
+                    if (result != null && result is Map<String, dynamic>) {
+                      setState(() {
+                        _pendingUpdates[index] = result;
+                      });
+                    }
+                  },
                   onRemove: _removePendingUpdate,
                 ),
                 if (_pendingUpdates.isNotEmpty) const SizedBox(height: 24),
