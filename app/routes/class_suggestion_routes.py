@@ -6,9 +6,11 @@ from app.schemas.class_suggestion_schema import SuggestedClassesResponse
 from database.database import get_db
 from app.services.auth_service import get_current_user
 
+# Define the router with URL prefix and documentation tag
 router = APIRouter(prefix="/class_suggestions", tags=["Class Suggestions"])
 
-
+# Suggest relevant classes for a given baby profile and camera type.
+# Only the profile owner (authenticated user) can request suggestions.
 @router.get("/", response_model=SuggestedClassesResponse)
 def suggest_classes(
     baby_profile_id: int,

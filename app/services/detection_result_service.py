@@ -6,7 +6,8 @@ from app.schemas import detection_result_schema
 import os
 from fastapi import HTTPException
 
-# יצירה (השרת בלבד)
+
+# Create a new detection result (used internally by the server)
 def create_detection_result(db: Session, data: detection_result_schema.DetectionResultCreate):
     db_result = DetectionResult(**data.dict())
     db.add(db_result)
@@ -14,7 +15,8 @@ def create_detection_result(db: Session, data: detection_result_schema.Detection
     db.refresh(db_result)
     return db_result
 
-# שליפה של כל ההיסטוריה של משתמש
+
+# Get all detection results for a specific user
 def get_all_detection_results_by_user(db: Session, user_id: int):
     results = db.query(DetectionResult).join(BabyProfile).join(ClassObject).filter(
         BabyProfile.user_id == user_id
@@ -23,6 +25,7 @@ def get_all_detection_results_by_user(db: Session, user_id: int):
         joinedload(DetectionResult.class_)
     ).all()
 
+    # Convert ORM results to schema response
     return [
         detection_result_schema.DetectionResultOut(
             id=result.id,
@@ -39,7 +42,8 @@ def get_all_detection_results_by_user(db: Session, user_id: int):
         for result in results
     ]
 
-# שליפה לפי משתמש + פרופיל תינוק + סוג מצלמה
+
+# Get detection results by baby profile + camera type (secured by ownership)
 def get_detection_results_by_filters(db: Session, user_id: int, baby_profile_id: int, camera_type: str):
     results = db.query(DetectionResult).join(BabyProfile).join(ClassObject).filter(
         BabyProfile.user_id == user_id,
@@ -66,7 +70,8 @@ def get_detection_results_by_filters(db: Session, user_id: int, baby_profile_id:
         for result in results
     ]
 
-# שליפה בודדת (מאובטח)
+
+# Get a single detection result by ID (only if it belongs to the user)
 def get_detection_result_by_user(db: Session, detection_id: int, user_id: int):
     result = db.query(DetectionResult).join(BabyProfile).join(ClassObject).filter(
         DetectionResult.id == detection_id,
@@ -92,7 +97,8 @@ def get_detection_result_by_user(db: Session, detection_id: int, user_id: int):
         image_path=result.image_path
     )
 
-# מחיקה (מאובטח)
+
+# Delete a single detection result (secured, includes optional image deletion)
 def delete_detection_result_by_user(db: Session, detection_id: int, user_id: int):
     db_result = db.query(DetectionResult).join(BabyProfile).filter(
         DetectionResult.id == detection_id,
@@ -105,7 +111,7 @@ def delete_detection_result_by_user(db: Session, detection_id: int, user_id: int
     if db_result is None:
         return None
 
-    # מחיקת קובץ התמונה אם קיים
+    # Attempt to delete associated image file
     if db_result.image_path:
         file_path = os.path.join("uploads", db_result.image_path)
         if os.path.exists(file_path):
@@ -130,14 +136,16 @@ def delete_detection_result_by_user(db: Session, detection_id: int, user_id: int
         image_path=db_result.image_path
     )
 
+
+# Delete multiple detection results in batch (grouped by baby profile, secured)
 def batch_delete_detection_results_by_user(db: Session, user_id: int, alerts_by_baby: dict):
-    # Convert string keys to int (from JSON)
+    # Convert JSON string keys to integers
     try:
         baby_ids = [int(bid) for bid in alerts_by_baby.keys()]
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid baby profile ID in request (must be integers)")
 
-    # Check if user owns all the baby profiles
+    # Ensure the user owns the baby profiles
     owned_profiles = db.query(BabyProfile.id).filter(
         BabyProfile.user_id == user_id,
         BabyProfile.id.in_(baby_ids)
@@ -148,7 +156,7 @@ def batch_delete_detection_results_by_user(db: Session, user_id: int, alerts_by_
     if unauthorized:
         raise HTTPException(status_code=403, detail=f"Unauthorized access to baby profile(s): {list(unauthorized)}")
 
-    # Delete detections
+    # Loop over baby profiles and alert IDs, deleting valid ones
     deleted_results = []
 
     for baby_id_str, alert_ids in alerts_by_baby.items():
@@ -173,5 +181,3 @@ def batch_delete_detection_results_by_user(db: Session, user_id: int, alerts_by_
 
     db.commit()
     return {"deleted_count": len(deleted_results)}
-
-

@@ -8,22 +8,32 @@ class BabyProfileBase(BaseModel):
 
     user_id: Optional[int] = None  # ID of the user who owns the profile
     name: str  # Baby's name (required)
-    age: Optional[int] = None  # Baby's age in months or years
+    age: Optional[int] = None  # Baby's age in months
     gender: Optional[str] = None  # 'male', 'female', or 'other'
     weight: Optional[int] = None  # Baby's weight in kilograms
     height: Optional[int] = None  # Baby's height in centimeters
     medical_condition: Optional[str] = None  # Any known medical condition
     profile_picture: Optional[str] = None  # URL or path to profile picture
-    head_camera_model_classes: Optional[Dict] = None  # Object detection classes for head camera (class_name → risk_level)
-    static_camera_model_classes: Optional[Dict] = None  # Object detection classes for static camera (class_name → risk_level)
-    head_camera_ip: Optional[str] = None  # IP address of the head-mounted camera
-    static_camera_ip: Optional[str] = None  # IP address of the static room camera
-    head_camera_on: Optional[bool] = False  # Connection state of head camera
-    static_camera_on: Optional[bool] = False  # Connection state of static camera
+
+    # Class name → risk level mappings for each camera type
+    head_camera_model_classes: Optional[Dict] = None
+    static_camera_model_classes: Optional[Dict] = None
+
+    # Camera IPs
+    head_camera_ip: Optional[str] = None
+    static_camera_ip: Optional[str] = None
+
+    # Whether each camera is currently connected
+    head_camera_on: Optional[bool] = False
+    static_camera_on: Optional[bool] = False
+
+    # When the model for each camera type was last updated
     head_camera_model_last_updated_time: Optional[datetime] = None
     static_camera_model_last_updated_time: Optional[datetime] = None
-    head_camera_in_detection_system_on: Optional[bool] = False  # Detection system state for head camera
-    static_camera_in_detection_system_on: Optional[bool] = False  # Detection system state for static camera
+
+    # Whether detection is currently active for each camera
+    head_camera_in_detection_system_on: Optional[bool] = False
+    static_camera_in_detection_system_on: Optional[bool] = False
 
 
 class BabyProfileCreate(BabyProfileBase):
@@ -33,7 +43,7 @@ class BabyProfileCreate(BabyProfileBase):
 
 class BabyProfileUpdate(BaseModel):
     """Schema for updating an existing baby profile. All fields are optional except name."""
-    
+
     name: str  # Baby's name is required when updating
     age: Optional[int] = None
     gender: Optional[str] = None
@@ -49,8 +59,8 @@ class BabyProfileUpdate(BaseModel):
     static_camera_on: Optional[bool] = None
     head_camera_model_last_updated_time: Optional[datetime] = None
     static_camera_model_last_updated_time: Optional[datetime] = None
-    head_camera_in_detection_system_on: Optional[bool] = None  # Detection system state for head camera
-    static_camera_in_detection_system_on: Optional[bool] = None  # Detection system state for static camera
+    head_camera_in_detection_system_on: Optional[bool] = None
+    static_camera_in_detection_system_on: Optional[bool] = None
 
 
 class BabyProfileOut(BabyProfileBase):

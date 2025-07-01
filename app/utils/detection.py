@@ -13,23 +13,30 @@ from app.utils.websocket_broadcast import broadcast_detection
 from app.utils.esp32_stream_buffer import ESP32StreamBuffer
 from database.database import SessionLocal
 
+# Dictionary to track currently running detection tasks per camera
 running_tasks = {}
+
+# Dictionary to avoid sending repeated alerts for same class within short period
 last_detection_time = {}  # key: profile_camera_class, value: datetime
+
+# Dictionary to hold active frame buffers from ESP32 streams
 stream_buffers = {}  # key: profile_id_camera_type, value: ESP32StreamBuffer
 
+# Start the detection loop for a given baby profile and camera
 async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_id: int, model_path: str, db, camera_profiles):
     model = YOLO(model_path)
     stream_url = f"http://{ip}/stream"
     should_stop = False
     buffer_key = f"{profile_id}_{camera_type}"
 
+    # Reuse existing stream buffer or create a new one
     stream_buffer = stream_buffers.get(buffer_key)
     if stream_buffer is None:
         stream_buffer = ESP32StreamBuffer(stream_url)
         stream_buffer.start()
         stream_buffers[buffer_key] = stream_buffer
 
-
+    # Main detection loop
     async def detect():
         nonlocal should_stop
         read_fail_count = 0
@@ -40,6 +47,8 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
             while True:
                 try:
                     frame = stream_buffer.get_latest_frame()
+
+                    # Handle frame read failure
                     if frame is None:
                         read_fail_count += 1
                         print(f"[WARNING] Failed to read frame ({(read_fail_count * open_fail_count) + read_fail_count} time(s))")
@@ -55,13 +64,13 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
                                 print(f"[DISCONNECTED] Camera for Profile {profile_id} - {camera_type}")
                                 await notify_disconnection_and_stop(profile_id, camera_type, user_id, camera_profiles, db)
                                 break
-
                         await asyncio.sleep(0.5)
                         continue
                     else:
                         read_fail_count = 0
                         open_fail_count = 0
 
+                    # Run YOLO detection on the frame
                     results = model(frame)[0]
                     now = datetime.utcnow()
 
@@ -71,9 +80,11 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
                             key = f"{profile_id}_{camera_type}_{class_id}"
                             last_time = last_detection_time.get(key)
 
+                            # Avoid duplicate detections within 5 seconds
                             if not last_time or (now - last_time).total_seconds() > 5:
                                 last_detection_time[key] = now
 
+                                # Fetch class metadata from DB
                                 class_obj = db.query(ClassObject).filter_by(
                                     baby_profile_id=profile_id,
                                     camera_type=camera_type,
@@ -82,9 +93,10 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
                                 class_name = class_obj.name if class_obj else "unknown"
                                 risk_level = class_obj.risk_level if class_obj else "unknown"
                                 conf_value = float(conf.item()) if hasattr(conf, 'item') else float(conf)
+
                                 print(f"[DETECTED] Profile {profile_id}, Class {class_id}, Confidence {conf_value:.2f}")
                                 
-                                # עכשיו שומרים את התמונה ומעדכנים את ה-db
+                                # Save detection image and update DB
                                 base_path = "uploads/detections"
                                 relative_path = save_detection_image(base_path, profile_id, camera_type, class_name, class_obj.id, xyxy, conf_value, frame)
 
@@ -99,7 +111,7 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
                                 db.add(detection)
                                 db.commit()
 
-                                # שליחה ל-WebSocket עם detection_id
+                                # Send WebSocket alert to frontend
                                 await broadcast_detection(
                                     user_id,
                                     {
@@ -115,10 +127,9 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
                                     }
                                 )
 
-                                # שליחת push notifications
+                                # Send FCM push notification to mobile
                                 if user_id:
                                     try:
-                                        # Create a fresh database session to avoid session binding issues
                                         fresh_db = SessionLocal()
                                         try:
                                             tokens = [t.token for t in fresh_db.query(UserFCMToken).filter_by(user_id=user_id).all()]
@@ -166,7 +177,6 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
                                             fresh_db.close()
                                     except Exception as e:
                                         print(f"[WARNING] Failed to send push notifications: {e}")
-                                        print(f"[DEBUG] Exception type: {type(e)}")
                                         import traceback
                                         print(f"[DEBUG] Full traceback: {traceback.format_exc()}")
 
@@ -182,18 +192,19 @@ async def start_detection_loop(profile_id: int, camera_type: str, ip: str, user_
         except Exception as e:
             print(f"[ERROR] Detection loop failed: {e}")
         finally:
-            #cap.release()
             print(f"[STOPPED] Detection for Profile {profile_id} - {camera_type}")
 
+    # Track this detection loop as an active task
     task_id = f"{profile_id}_{camera_type}"
     running_tasks[task_id] = asyncio.create_task(detect())
     return task_id
 
+# Stop a running detection task and clean up
 async def stop_detection_loop(profile_id: int, camera_type: str):
-    # ניקוי זיכרון זמני של זיהויים אחרונים למניעת חסימת זיהויים עתידיים
     keys_to_remove = [key for key in last_detection_time if key.startswith(f"{profile_id}_{camera_type}_")]
     for key in keys_to_remove:
         del last_detection_time[key]
+
     task_id = f"{profile_id}_{camera_type}"
     task = running_tasks.pop(task_id, None)
     if task:
@@ -203,13 +214,13 @@ async def stop_detection_loop(profile_id: int, camera_type: str):
     buffer_key = f"{profile_id}_{camera_type}"
     stream_buffer = stream_buffers.pop(buffer_key, None)
     if stream_buffer:
-        stream_buffer.stop()    
+        stream_buffer.stop()
 
+# Handle camera disconnection: notify, clean up, and stop monitoring
 async def notify_disconnection_and_stop(profile_id: int, camera_type: str, user_id: int, camera_profiles, db):
     try:
         from app.services.monitoring_service import stop_monitoring_service
 
-        # נשלח רק ל־WebSocket
         baby_profile = db.query(BabyProfile).filter_by(id=profile_id).first()
         if baby_profile:
             await broadcast_detection(
@@ -222,10 +233,7 @@ async def notify_disconnection_and_stop(profile_id: int, camera_type: str, user_
                 }
             )
 
-            # שליחת התראה ב־Push Notification
             if user_id:
-
-                # Create a fresh database session to avoid session binding issues
                 fresh_db = SessionLocal()
                 try:
                     tokens = [t.token for t in fresh_db.query(UserFCMToken).filter_by(user_id=user_id).all()]
@@ -274,6 +282,7 @@ async def notify_disconnection_and_stop(profile_id: int, camera_type: str, user_
 
         await stop_detection_loop(profile_id, camera_type)
 
+        # If no other cameras are active for this profile, stop monitoring service
         active_sessions = [key for key in running_tasks.keys() if key.startswith(f"{profile_id}_")]
         if not active_sessions:
             print(f"[INFO] All cameras for Profile {profile_id} disconnected. Stopping monitoring.")
@@ -282,8 +291,7 @@ async def notify_disconnection_and_stop(profile_id: int, camera_type: str, user_
     except Exception as e:
         print(f"[ERROR] Failed to handle disconnection and stop detection: {e}")
 
-
-# פונקציה חדשה לשמירה של התמונות
+# Save an annotated image of the detection
 def save_detection_image(base_path, baby_profile_id, camera_type, class_name, class_id, xyxy_tensor, confidence, frame):
     folder = os.path.join(base_path, str(baby_profile_id), camera_type)
     os.makedirs(folder, exist_ok=True)
@@ -296,25 +304,16 @@ def save_detection_image(base_path, baby_profile_id, camera_type, class_name, cl
     xyxy = xyxy_tensor.cpu().numpy().astype(int)
     x1, y1, x2, y2 = xyxy
 
+    # Draw bounding box and label on the image
     label_text = f"{class_name} ({conf_str})"
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = 0.6
     thickness = 2
     text_size, _ = cv2.getTextSize(label_text, font, font_scale, thickness)
 
-    # draw rectangle
     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-
-    # compute position so text is inside the box (top-left corner + padding)
-    text_x = x1 + 5
-    text_y = y1 + text_size[1] + 5  # shift down a bit to fit inside
-
-
-    # draw filled background for visibility
     cv2.rectangle(frame, (x1, y1), (x1 + text_size[0] + 10, y1 + text_size[1] + 10), (0, 255, 0), cv2.FILLED)
-
-    # draw text
-    cv2.putText(frame, label_text, (text_x, text_y), font, font_scale, (0, 0, 0), thickness)
+    cv2.putText(frame, label_text, (x1 + 5, y1 + text_size[1] + 5), font, font_scale, (0, 0, 0), thickness)
 
     cv2.imwrite(file_path, frame)
 

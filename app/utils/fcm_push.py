@@ -12,15 +12,14 @@ def send_push_notifications(
     credentials_path: str
 ):
     """
-    Sends push notifications to multiple devices using FCM HTTP v1 API.
-    Expects a base_message_json that contains everything except the token,
-    which will be inserted per token automatically.
+    Sends push notifications to multiple devices using Firebase Cloud Messaging (HTTP v1 API).
+    Expects a base_message_json (without the 'token') which is added per device before sending.
     """
+    # Load service account credentials and generate access token
     credentials = service_account.Credentials.from_service_account_file(
         credentials_path,
         scopes=["https://www.googleapis.com/auth/firebase.messaging"]
     )
-
     credentials.refresh(Request())
     access_token = credentials.token
 
@@ -30,11 +29,12 @@ def send_push_notifications(
         "Content-Type": "application/json"
     }
 
+    # Iterate through all device tokens and send the message individually
     for token in tokens:
         message = {
             "message": {
-                "token": token,  # override/add the token
-                **base_message_json["message"]  # shallow copy of message dict
+                "token": token,  # Attach the current token
+                **base_message_json["message"]  # Merge base message content
             }
         }
 
@@ -47,6 +47,7 @@ def send_push_notifications(
             print(f"[FCM DEBUG] Response status: {response.status_code}")
             print(f"[FCM DEBUG] Response headers: {dict(response.headers)}")
 
+            # Handle errors or success
             if response.status_code != 200:
                 print(f"[FCM ERROR] HTTP {response.status_code}: {response.text}")
                 try:
@@ -55,13 +56,18 @@ def send_push_notifications(
 
                     if 'error' in error_json:
                         error_message = error_json['error'].get('message', '').lower()
+
+                        # Remove invalid or unregistered tokens from DB
                         if 'requested entity was not found' in error_message or 'notregistered' in error_message:
                             print("[FCM REMOVE] Invalid token detected:", token)
                             _delete_token_from_db(token)
+
                         elif 'invalid argument' in error_message:
                             print("[FCM ERROR] Invalid message format - check payload structure")
+
                         else:
                             print(f"[FCM ERROR] Other FCM error: {error_json['error']}")
+
                 except Exception as parse_err:
                     print(f"[FCM ERROR] Failed to parse error response: {parse_err}")
                     print(f"[FCM ERROR] Raw response: {response.text}")
@@ -82,6 +88,9 @@ def send_push_notifications(
 
 
 def _delete_token_from_db(token: str):
+    """
+    Removes an invalid or expired FCM token from the database.
+    """
     try:
         db = SessionLocal()
         token_obj = db.query(UserFCMToken).filter_by(token=token).first()

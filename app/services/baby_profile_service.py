@@ -18,17 +18,17 @@ def create_baby_profile(db: Session, profile: baby_profile_schema.BabyProfileCre
     return db_profile
 
 
-# Get all baby profiles (may be used for admin in the future)
+# Get all baby profiles (potentially for admin use)
 def get_all_baby_profiles(db: Session):
     return db.query(BabyProfile).all()
 
 
-# Get all baby profiles associated with a specific user (secured)
+# Get all baby profiles for a specific user (secured)
 def get_baby_profiles_by_user_id(db: Session, user_id: int):
     return db.query(BabyProfile).filter(BabyProfile.user_id == user_id).all()
 
 
-# Get a single baby profile by its ID and user ID (secured)
+# Get a single baby profile by ID and user ID (secured)
 def get_baby_profile_by_user(db: Session, profile_id: int, user_id: int):
     return db.query(BabyProfile).filter(
         BabyProfile.id == profile_id,
@@ -36,13 +36,13 @@ def get_baby_profile_by_user(db: Session, profile_id: int, user_id: int):
     ).first()
 
 
-# Update an existing baby profile by ID and user ID (secured)
+# Update a baby profile's fields (only provided fields will be updated)
 def update_baby_profile_by_user(db: Session, profile_id: int, user_id: int, profile_update: baby_profile_schema.BabyProfileUpdate):
     db_profile = get_baby_profile_by_user(db, profile_id, user_id)
     if db_profile is None:
         return None
 
-    update_data = profile_update.dict(exclude_unset=True)
+    update_data = profile_update.dict(exclude_unset=True)  # Only update fields provided in the request
     for key, value in update_data.items():
         setattr(db_profile, key, value)
 
@@ -51,27 +51,28 @@ def update_baby_profile_by_user(db: Session, profile_id: int, user_id: int, prof
     return db_profile
 
 
-# Delete a baby profile and all its related records and folders (secured)
+# Delete a baby profile and clean up all related resources (DB and file system)
 def delete_baby_profile_by_user(db: Session, profile_id: int, user_id: int):
     db_profile = get_baby_profile_by_user(db, profile_id, user_id)
     if db_profile is None:
         return None
 
+    # Delete the baby profile itself
     db.delete(db_profile)
 
-    # Delete all related class definitions
+    # Delete all associated classes
     db_classes = db.query(ClassObject).filter(ClassObject.baby_profile_id == profile_id).all()
     for item in db_classes:
         db.delete(item)
 
-    # Delete all related detection results
+    # Delete all associated detection results
     db_detection_results = db.query(DetectionResult).filter(DetectionResult.baby_profile_id == profile_id).all()
     for item in db_detection_results:
         db.delete(item)
 
     db.commit()
 
-    # Delete local folders for detections and training data
+    # Remove associated local folders for detections and training data
     detections_path = os.path.join("uploads", "detections", str(profile_id))
     if os.path.exists(detections_path):
         shutil.rmtree(detections_path)
@@ -80,7 +81,7 @@ def delete_baby_profile_by_user(db: Session, profile_id: int, user_id: int):
     if os.path.exists(training_data_path):
         shutil.rmtree(training_data_path)
 
-    # Delete corresponding Google Drive folder
+    # Remove corresponding Google Drive folder (if exists)
     drive_service = GoogleDriveService()
     drive_service.delete_baby_profile_folder(profile_id)
 
