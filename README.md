@@ -122,6 +122,11 @@ User data encrypted in transit and at rest.
 
 Role-based access control for sensitive operations.
 
+## 📄 More Information
+
+For a detailed project architecture, including abstract, user flows, entity diagrams, and implementation details, please refer to the file:
+[architecture.pdf](architecture.pdf)
+
 ## 👥 Authors
 
 Gil Matzafi – Backend & Cloud Integration
