@@ -1,12 +1,10 @@
-Here’s a complete README.md draft for your project based on your architecture document and what I know about your BabyCam backend:
-
-BabyCam – Infant Safety Monitoring System
-📌 Overview
+# BabyCam – Infant Safety Monitoring System
+## 📌 Overview
 
 BabyCam is an innovative system for monitoring infants near hazardous objects using smart cameras integrated with machine learning. The system sends real-time alerts to parents and enables live monitoring, hazard customization, and cloud-based history tracking.
 It is designed to be easy-to-use, privacy-focused, and highly reliable, ensuring the safety and peace of mind of caregivers.
 
-🚀 Features
+## 🚀 Features
 
 Real-time Object Detection – Detects hazardous objects using YOLO-based ML models.
 
@@ -24,8 +22,8 @@ User Profiles – Multiple baby profiles with separate camera and hazard configu
 
 Connection Monitoring – Alerts when a camera disconnects.
 
-🛠 Technologies Used
-Backend
+## 🛠 Technologies Used
+### Backend:
 
 Language: Python
 
@@ -39,11 +37,11 @@ Machine Learning: YOLOv8 for object detection
 
 ESP32-CAM Streaming: Based on ESP32-CAM-MJPEG-Multiclient
 
-Frontend
+### Frontend:
 
 Framework: Flutter (Android, iOS, Web support)
 
-Tools & Development
+## Tools & Development
 
 Git & GitHub for version control
 
@@ -53,7 +51,7 @@ ChatGPT
 
 Cursor – AI Code Editor
 
-📱 User Stories (Examples)
+## 📱 User Stories (Examples)
 
 Live Video Feed – As a parent, I want to watch my infant’s activities in real-time.
 
@@ -65,7 +63,7 @@ Custom Sensitivity – As a parent, I want to adjust hazard detection sensitivit
 
 Camera Disconnection Alerts – As a parent, I want to be notified when a camera disconnects.
 
-📂 Project Structure
+## 📂 Project Structure
 babycam-backend/
 │
 ├── app/
@@ -82,31 +80,31 @@ babycam-backend/
 ├── frontend/              # Flutter app
 └── requirements.txt
 
-⚙️ Installation & Setup
-1️⃣ Backend
-# Clone the repository
-git clone https://github.com/<your-repo>.git
-cd babycam-backend
+## ⚙️ Installation & Setup
+### 1️⃣ Backend:
+#### Clone the repository:
+git clone https://github.com/DanielMich99/BabyCam.git
+cd BabyCam
 
-# Create and activate virtual environment
+#### Create and activate virtual environment:
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies
+#### Install dependencies:
 pip install -r requirements.txt
 
-# Run database migrations
+#### Run database migrations:
 alembic upgrade head
 
-# Start FastAPI server
+#### Start FastAPI server:
 uvicorn main:app --reload
 
-2️⃣ Frontend (Flutter)
+### 2️⃣ Frontend (Flutter):
 cd frontend
 flutter pub get
 flutter run
 
-📡 API Endpoints (Examples)
+## 📡 API Endpoints (Examples)
 Method	Endpoint	Description
 POST	/auth/login	Authenticate a user
 POST	/baby-profile	Create a baby profile
@@ -115,7 +113,8 @@ POST	/camera/connect	Wait for ESP32-CAM connection
 POST	/camera/disconnect	Disconnect a camera
 GET	/streaming/stream/{profile_id}/{camera_type}	Get live stream
 GET	/detection-results/my	Get detection history
-🔒 Privacy & Security
+
+## 🔒 Privacy & Security
 
 All communications secured via HTTPS.
 
@@ -123,7 +122,7 @@ User data encrypted in transit and at rest.
 
 Role-based access control for sensitive operations.
 
-👥 Authors
+## 👥 Authors
 
 Gil Matzafi – Backend & Cloud Integration
 
