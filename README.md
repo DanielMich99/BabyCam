@@ -127,6 +127,9 @@ Role-based access control for sensitive operations.
 For a detailed project architecture, including abstract, user flows, entity diagrams, and implementation details, please refer to the file:
 [architecture.pdf](architecture.pdf)
 
+To see the system in action, check out our demonstration video on YouTube:
+[video](https://www.youtube.com/watch?v=othOOGOn8nY)
+
 ## 👥 Authors
 
 Gil Matzafi – Backend & Cloud Integration
