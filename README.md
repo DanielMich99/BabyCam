@@ -22,7 +22,7 @@ User Profiles – Multiple baby profiles with separate camera and hazard configu
 
 Connection Monitoring – Alerts when a camera disconnects.
 
-## Screens
+## 👀 Screens
 
 ![alt text](screens/login.jpg)
 ![alt text](screens/register.jpg)
