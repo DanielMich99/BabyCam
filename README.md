@@ -4,36 +4,36 @@
 BabyCam is an innovative system for monitoring infants near hazardous objects using smart cameras integrated with machine learning. The system sends real-time alerts to parents and enables live monitoring, hazard customization, and cloud-based history tracking.
 It is designed to be easy-to-use, privacy-focused, and highly reliable, ensuring the safety and peace of mind of caregivers.
 
+## 🎬 Demo Video
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=othOOGOn8nY" target="_blank">
+    <img src="https://img.youtube.com/vi/othOOGOn8nY/maxresdefault.jpg" alt="צפו במערכת BabyCam בפעולה" width="700"/>
+  </a>
+</p>
+
 ## 🚀 Features
 
-Real-time Object Detection – Detects hazardous objects using YOLO-based ML models.
+- Real-time Object Detection – Detects hazardous objects using YOLO-based ML models.
 
-Multiple Camera Types – Supports both wearable head cameras and static cameras.
+- Multiple Camera Types – Supports both wearable head cameras and static cameras.
 
-Live Streaming – View real-time camera feeds via mobile app.
+- Live Streaming – View real-time camera feeds via mobile app.
 
-Custom Hazard Management – Add, update, or remove objects to monitor.
+- Custom Hazard Management – Add, update, or remove objects to monitor.
 
-Alert System – Sends push notifications when hazards are detected.
+- Alert System – Sends push notifications when hazards are detected.
 
-Cloud Integration – Training data, model files, and alerts stored and managed in the cloud.
+- Cloud Integration – Training data, model files, and alerts stored and managed in the cloud.
 
-User Profiles – Multiple baby profiles with separate camera and hazard configurations.
+- User Profiles – Multiple baby profiles with separate camera and hazard configurations.
 
-Connection Monitoring – Alerts when a camera disconnects.
+- Connection Monitoring – Alerts when a camera disconnects.
 
 ## 👀 Screens
 
-![alt text](screens/login.jpg)
-![alt text](screens/register.jpg)
-![alt text](screens/home.jpg)
-![alt text](screens/baby_profile.jpg)
-![alt text](screens/model_edit.jpg)
-![alt text](screens/labeling.jpg)
-![alt text](screens/login.jpg)
-![alt text](screens/class_recommendation.jpg)
-![alt text](screens/camera_screen.jpg)
-![alt text](screens/settings.jpg)
+<img src="screens/login.jpg" alt="Login Screen" width="180" height="540"/> <img src="screens/register.jpg" alt="Register Screen" width="180" height="540"/> <img src="screens/home.jpg" alt="Home Screen" width="180" height="540"/> <img src="screens/baby_profile.jpg" alt="Baby Profile Screen" width="180" height="540"/> <img src="screens/model_edit.jpg" alt="Model Edit Screen" width="180" height="540"/>
+<img src="screens/labeling.jpg" alt="Labeling Screen" width="180" height="540"/> <img src="screens/class_recommendation.jpg" alt="Class Recommendation Screen" width="180" height="540"/> <img src="screens/camera_screen.jpg" alt="Camera Screen" width="180" height="540"/> <img src="screens/detections_history.jpg" alt="Detections History.jpg Screen" width="180" height="540"/> <img src="screens/settings.jpg" alt="Settings Screen" width="180" height="540"/>
 
 ## 🛠 Technologies Used
 ### Backend:
@@ -42,9 +42,9 @@ Language: Python
 
 Framework: FastAPI (REST API + WebSockets)
 
-Database: Firebase Realtime Database + PostgreSQL (SQLAlchemy ORM)
+Database: PostgreSQL (SQLAlchemy ORM)
 
-Cloud: Google Cloud Platform (Cloud Run, Cloud Functions, Google Drive integration)
+Cloud: Google Cloud Platform (Cloud Run, Cloud SQL, Google Drive integration)
 
 Machine Learning: YOLOv8 for object detection
 
@@ -54,78 +54,60 @@ ESP32-CAM Streaming: Based on ESP32-CAM-MJPEG-Multiclient
 
 Framework: Flutter (Android, iOS, Web support)
 
-## Tools & Development
-
-Git & GitHub for version control
-
-GitHub Copilot
-
-ChatGPT
-
-Cursor – AI Code Editor
-
-## 📱 User Stories (Examples)
-
-Live Video Feed – As a parent, I want to watch my infant’s activities in real-time.
-
-Real-time Alerts – As a parent, I want to receive immediate notifications when a hazard is detected.
-
-Weekly Hazard Summary – As a parent, I want a report of recurring risks.
-
-Custom Sensitivity – As a parent, I want to adjust hazard detection sensitivity per baby profile.
-
-Camera Disconnection Alerts – As a parent, I want to be notified when a camera disconnects.
-
 ## 📂 Project Structure
-babycam-backend/
-│
-├── app/
-│   ├── controllers/      # Request handling logic
-│   ├── models/           # SQLAlchemy ORM models
-│   ├── routes/           # API route definitions
-│   ├── schemas/          # Pydantic schemas for validation
-│   ├── services/         # Business logic
-│   ├── utils/            # File handling, dataset utils, Drive API
-│   └── db_utils/         # Database query helpers
-│
-├── database/             # DB initialization & migrations
-├── migrations/           # Alembic migration scripts
-├── frontend/              # Flutter app
-└── requirements.txt
+babycam-backend/  
+│  
+├── app/  
+│   ├── controllers/      # Request handling logic  
+│   ├── models/           # SQLAlchemy ORM models  
+│   ├── routes/           # API route definitions  
+│   ├── schemas/          # Pydantic schemas for validation  
+│   ├── services/         # Business logic  
+│   ├── utils/            # File handling, dataset utils, Drive API  
+│   └── db_utils/         # Database query helpers  
+│  
+├── database/             # DB initialization & migrations  
+├── migrations/           # Alembic migration scripts  
+├── frontend/              # Flutter app  
+└── requirements.txt  
 
 ## ⚙️ Installation & Setup
 ### 1️⃣ Backend:
 #### Clone the repository:
-git clone https://github.com/DanielMich99/BabyCam.git
-cd BabyCam
+```git clone https://github.com/DanielMich99/BabyCam.git
+cd BabyCam```
 
 #### Create and activate virtual environment:
-python -m venv venv
+```python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
 #### Install dependencies:
-pip install -r requirements.txt
+```pip install -r requirements.txt```
 
 #### Run database migrations:
-alembic upgrade head
+```alembic upgrade head```
 
 #### Start FastAPI server:
-uvicorn main:app --reload
+```uvicorn main:app --reload```
 
 ### 2️⃣ Frontend (Flutter):
-cd frontend
+```cd frontend
 flutter pub get
 flutter run
+```
 
 ## 📡 API Endpoints (Examples)
-Method	Endpoint	Description
-POST	/auth/login	Authenticate a user
-POST	/baby-profile	Create a baby profile
-POST	/model/update	Update hazard detection model
-POST	/camera/connect	Wait for ESP32-CAM connection
-POST	/camera/disconnect	Disconnect a camera
-GET	/streaming/stream/{profile_id}/{camera_type}	Get live stream
-GET	/detection-results/my	Get detection history
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| **POST** | `/auth/login` | Authenticate a user and return an access token. |
+| **POST** | `/baby-profile` | Create a new baby monitoring profile. |
+| **POST** | `/model/update` | Trigger an update/re-training of the hazard detection model. |
+| **POST** | `/camera/connect` | Initiate the connection process with an ESP32-CAM device. |
+| **POST** | `/camera/disconnect` | Close the active connection to a camera. |
+| **GET** | `/streaming/stream/{profile_id}/{camera_type}` | Retrieve the live video stream (WebSocket connection). |
+| **GET** | `/detection-results/my` | Retrieve the user's history of detected hazards. |
 
 ## 🔒 Privacy & Security
 
@@ -139,9 +121,6 @@ Role-based access control for sensitive operations.
 
 For a detailed project architecture, including abstract, user flows, entity diagrams, and implementation details, please refer to the file:
 [architecture.pdf](architecture.pdf)
-
-To see the system in action, check out our demonstration video on YouTube:
-[video](https://www.youtube.com/watch?v=othOOGOn8nY)
 
 ## 👥 Authors
 
