@@ -106,7 +106,6 @@ flutter run
 | **POST** | `/model/update` | Trigger an update/re-training of the hazard detection model. |
 | **POST** | `/camera/connect` | Initiate the connection process with an ESP32-CAM device. |
 | **POST** | `/camera/disconnect` | Close the active connection to a camera. |
-| **GET** | `/streaming/stream/{profile_id}/{camera_type}` | Retrieve the live video stream (WebSocket connection). |
 | **GET** | `/detection-results/my` | Retrieve the user's history of detected hazards. |
 
 ## 🔒 Privacy & Security
