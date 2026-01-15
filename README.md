@@ -123,8 +123,8 @@ For a detailed project architecture, including abstract, user flows, entity diag
 
 ## 👥 Authors
 
-Gil Matzafi – Backend & Cloud Integration
+Gil Matzafi – Frontend & Cloud Integration
 
-Daniel Michaelshvili – Backend, ML Pipeline, & System Architecture
+Daniel Michaelshvili – Backend, ML Pipeline , System Architecture & IoT
 
 Supervisor: Dr. Ariel Roth
